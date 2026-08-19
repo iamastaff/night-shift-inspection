@@ -5,55 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>夜班自主檢查確認系統</title>
     <style>
-        /* 禁用選取文字，增加偷看原始碼的難度 */
+        /* 強制讓所有元素的寬度包含內邊距，防止撐破版面 */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        /* 禁用選取文字 */
         body { 
             font-family: "Microsoft JhengHei", sans-serif; 
             background-color: #f4f4f9; 
-            padding: 20px; 
-            user-select: none; /* 禁止反白選取文字 */
+            padding: 10px; 
+            margin: 0;
+            user-select: none; 
             -webkit-user-select: none;
         }
-        .container { position: relative; max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        
+        /* 主容器 */
+        .container { position: relative; width: 100%; max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow: hidden; }
         h1, h2 { text-align: center; color: #333; }
         
         /* 測試模式按鈕 */
-        /* 測試模式按鈕 (已改小) */
-        .test-mode-btn { position: absolute; top: 10px; right: 10px; padding: 3px 6px; font-size: 10px; background-color: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; opacity: 0.7; }
+        .test-mode-btn { position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 11px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; opacity: 0.8; z-index: 100; }
         .test-mode-btn:hover { background-color: #5a6268; opacity: 1; }
         .test-mode-btn.active { background-color: #28a745; opacity: 1; }
         .test-mode-btn.active:hover { background-color: #218838; }
 
         /* 警告區塊 */
-        #violation-warnings { color: red; font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 20px; }
+        #violation-warnings { color: red; font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 20px; margin-top: 35px; min-height: 25px; }
         
         /* 表單區塊 */
-        .form-group { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
-        select, button.submit-btn { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
-        button.submit-btn { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .form-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; width: 100%; }
+        select, button.submit-btn { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; max-width: 100%; }
+        button.submit-btn { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; max-width: 250px; }
         button.submit-btn:hover { background-color: #0056b3; }
         button.submit-btn:disabled { background-color: #a0c4ff; cursor: not-allowed; }
 
         /* 狀態圓圈區塊 */
-        .status-board-container { margin-top: 30px; }
-        .date-selector { text-align: center; margin-bottom: 20px; background: #e9ecef; padding: 15px; border-radius: 8px; }
-        .date-selector label { font-size: 18px; font-weight: bold; margin-right: 10px; }
+        .status-board-container { margin-top: 30px; width: 100%; }
+        .date-selector { text-align: center; margin-bottom: 20px; background: #e9ecef; padding: 15px; border-radius: 8px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px;}
+        .date-selector label { font-size: 16px; font-weight: bold; }
         .date-selector input { padding: 8px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; }
         
-        /* 電腦版與共用設定 */
-        .equipment-row { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; }
-        .equipment-name { width: 100px; font-weight: bold; font-size: 18px; flex-shrink: 0; }
-        .circles-container { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 5px; width: 100%; }
-        .circle-wrapper { display: flex; flex-direction: column; align-items: center; min-width: 50px; }
-
-        /* 手機版專屬設定 (當螢幕寬度小於 600px 時觸發) */
-        @media (max-width: 600px) {
-            .equipment-row { flex-direction: column; align-items: flex-start; }
-            .equipment-name { width: 100%; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #ddd; }
-            .circles-container { justify-content: space-between; gap: 5px; }
-            .circle-wrapper { min-width: 40px; }
-            .circle { width: 25px; height: 25px; }
-            .time-label { font-size: 11px; transform: scale(0.9); }
-        }
+        .equipment-row { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; width: 100%; }
+        .equipment-name { width: 100px; font-weight: bold; font-size: 18px; flex-shrink: 0; white-space: nowrap; }
+        
+        /* 電腦版圓圈設定 */
+        .circles-container { display: flex; justify-content: flex-start; gap: 15px; overflow-x: auto; padding-bottom: 5px; width: 100%; }
+        .circle-wrapper { display: flex; flex-direction: column; align-items: center; min-width: 45px; flex-shrink: 0; }
         .circle { width: 30px; height: 30px; border-radius: 50%; background-color: #ccc; margin-bottom: 5px; }
         .circle.green { background-color: #28a745; }
         .circle.yellow { background-color: #ffc107; }
@@ -61,11 +57,44 @@
         .time-label { font-size: 12px; color: #555; height: 14px; }
 
         /* 歷史紀錄區塊 */
-        .history-section { margin-top: 40px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: center; }
+        .history-section { margin-top: 40px; overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: center; min-width: 400px; }
         th, td { border: 1px solid #ddd; padding: 10px; }
         th { background-color: #007bff; color: white; }
         tr:nth-child(even) { background-color: #f2f2f2; }
+
+        /* ======== 手機與平板專屬設定 ======== */
+        @media (max-width: 768px) {
+            .container { padding: 15px 10px; }
+            h1 { font-size: 22px; }
+            h2 { font-size: 18px; }
+            
+            .form-group select { width: 45%; flex-grow: 1; }
+            .form-group select:nth-child(3) { width: 100%; }
+            
+            .equipment-row { flex-direction: column; align-items: flex-start; padding: 10px; }
+            .equipment-name { width: 100%; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #ddd; text-align: left; font-size: 16px; }
+            
+            /* 【主要修改區塊】：大幅縮小手機版圓圈尺寸與間距 */
+            .circles-container { 
+                gap: 2px; /* 將間距縮小到幾乎沒有 */
+                justify-content: space-around; /* 讓圓圈均勻分布在畫面中 */
+                padding-bottom: 0px; 
+            }
+            .circle-wrapper { 
+                min-width: 32px; /* 縮小容器寬度 */
+            }
+            .circle { 
+                width: 20px;   /* 圓圈寬度改小 */
+                height: 20px;  /* 圓圈高度改小 */
+                margin-bottom: 2px;
+            }
+            .time-label { 
+                font-size: 9px;  /* 時間文字改小 */
+                transform: scale(0.85); /* 稍微壓縮文字比例，避免擠壓到旁邊的圓圈 */
+                transform-origin: top center;
+            }
+        }
     </style>
 </head>
 <!-- 禁止右鍵選單 (oncontextmenu="return false") -->
