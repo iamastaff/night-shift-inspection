@@ -103,7 +103,6 @@
 </div>
 
 <script>
-    // ⚠️ 替換成你剛剛複製的 Google Apps Script 網頁應用程式網址
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxarx1BWpO2lTskr1ex8DD0pPjZOyJ50VPBU6lXfCPTygkiV0DVreJDXNuXFZsNTsQ-/exec";
 
     const equipments = ["七尺機", "角浪機", "六尺機", "中圓浪機", "台泥機", "薄板機"];
@@ -169,7 +168,6 @@
         try {
             await fetch(SCRIPT_URL, {
                 method: 'POST',
-                // 使用 text/plain 避免跨域 (CORS) 預檢請求錯誤
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(newRecord)
             });
@@ -298,38 +296,52 @@
 
         const todayStr = now.toLocaleDateString('zh-TW');
 
+        // 先抓出該日期 00:00 到 08:00 所有設備的檢查紀錄
+        let allMorningRecords = records.filter(r => {
+            let rTime = new Date(r.timestamp);
+            return r.date === todayStr && rTime.getHours() < 8;
+        });
+
+        // 判斷 1：如果所有設備都沒有紀錄，代表全部是灰色圓圈，顯示「未開機」
+        if (allMorningRecords.length === 0) {
+            const msg = document.createElement("div");
+            msg.style.color = "gray"; // 使用灰色字體區隔警告
+            msg.innerText = `${todayStr} 0點到8點 未開機`;
+            warningDiv.appendChild(msg);
+            return; // 結束檢查，不再個別驗證設備
+        }
+
+        // 判斷 2：如果有一台以上設備有紀錄，才逐一檢查「有紀錄的設備」是否滿5次
         equipments.forEach(equip => {
             let targetRecords = records.filter(r => {
                 let rTime = new Date(r.timestamp);
                 return r.date === todayStr && r.equipment === equip && rTime.getHours() < 8;
             });
 
-            let violationOperator = "未知人員";
+            // 只有當該設備有自檢紀錄時（大於0次），才進行違規稽核
             if (targetRecords.length > 0) {
-                violationOperator = targetRecords[targetRecords.length - 1].operator;
-            } else {
-                let lastRec = getLastRecord(equip);
-                if (lastRec) violationOperator = lastRec.operator;
-            }
+                let isViolation = false;
 
-            let isViolation = false;
-
-            if (targetRecords.length < 5) {
-                isViolation = true;
-            } else {
-                targetRecords.sort((a, b) => a.timestamp - b.timestamp);
-                for (let i = 1; i < targetRecords.length; i++) {
-                    if ((targetRecords[i].timestamp - targetRecords[i - 1].timestamp) > 1.5 * 60 * 60 * 1000) {
-                        isViolation = true;
-                        break;
+                if (targetRecords.length < 5) {
+                    isViolation = true;
+                } else {
+                    targetRecords.sort((a, b) => a.timestamp - b.timestamp);
+                    for (let i = 1; i < targetRecords.length; i++) {
+                        if ((targetRecords[i].timestamp - targetRecords[i - 1].timestamp) > 1.5 * 60 * 60 * 1000) {
+                            isViolation = true;
+                            break;
+                        }
                     }
                 }
-            }
 
-            if (isViolation) {
-                const msg = document.createElement("div");
-                msg.innerText = `${equip} ${violationOperator} ${todayStr} 在早上0點到8點未確實實施自主檢查`;
-                warningDiv.appendChild(msg);
+                // 如果違規，抓取最後一位操作該設備的人員名稱並顯示紅字
+                if (isViolation) {
+                    let violationOperator = targetRecords[targetRecords.length - 1].operator;
+                    const msg = document.createElement("div");
+                    msg.style.color = "red";
+                    msg.innerText = `${equip} ${violationOperator} ${todayStr} 在早上0點到8點未確實實施自主檢查`;
+                    warningDiv.appendChild(msg);
+                }
             }
         });
     }
