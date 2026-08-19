@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夜班自主檢查確認系統</title>
+    <style>
+        /* 禁用選取文字，增加偷看原始碼的難度 */
+        body { 
+            font-family: "Microsoft JhengHei", sans-serif; 
+            background-color: #f4f4f9; 
+            padding: 20px; 
+            user-select: none; /* 禁止反白選取文字 */
+            -webkit-user-select: none;
+        }
+        .container { position: relative; max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2 { text-align: center; color: #333; }
+        
+        /* 測試模式按鈕 */
+        .test-mode-btn { position: absolute; top: 15px; right: 15px; padding: 5px 10px; font-size: 12px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .test-mode-btn:hover { background-color: #5a6268; }
+        .test-mode-btn.active { background-color: #28a745; }
+        .test-mode-btn.active:hover { background-color: #218838; }
+
+        /* 警告區塊 */
+        #violation-warnings { color: red; font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 20px; }
+        
+        /* 表單區塊 */
+        .form-group { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        select, button.submit-btn { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
+        button.submit-btn { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button.submit-btn:hover { background-color: #0056b3; }
+        button.submit-btn:disabled { background-color: #a0c4ff; cursor: not-allowed; }
+
+        /* 狀態圓圈區塊 */
+        .status-board-container { margin-top: 30px; }
+        .date-selector { text-align: center; margin-bottom: 20px; background: #e9ecef; padding: 15px; border-radius: 8px; }
+        .date-selector label { font-size: 18px; font-weight: bold; margin-right: 10px; }
+        .date-selector input { padding: 8px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; }
+        
+        .equipment-row { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; }
+        .equipment-name { width: 100px; font-weight: bold; font-size: 18px; }
+        .circles-container { display: flex; gap: 15px; }
+        .circle-wrapper { display: flex; flex-direction: column; align-items: center; width: 60px; }
+        .circle { width: 30px; height: 30px; border-radius: 50%; background-color: #ccc; margin-bottom: 5px; }
+        .circle.green { background-color: #28a745; }
+        .circle.yellow { background-color: #ffc107; }
+        .circle.red { background-color: #dc3545; }
+        .time-label { font-size: 12px; color: #555; height: 14px; }
+
+        /* 歷史紀錄區塊 */
+        .history-section { margin-top: 40px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: center; }
+        th, td { border: 1px solid #ddd; padding: 10px; }
+        th { background-color: #007bff; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+    </style>
+</head>
+<!-- 禁止右鍵選單 (oncontextmenu="return false") -->
+<body oncontextmenu="return false;">
+
+<div class="container">
+    <button id="testModeBtn" class="test-mode-btn" onclick="toggleTestMode()">測試人員模式</button>
+    
+    <div id="violation-warnings"></div>
+
+    <h1>夜班自主檢查確認</h1>
+    
+    <div class="form-group">
+        <select id="operator">
+            <option value="">-- 選擇人員 --</option>
+            <option value="王軒嘉">王軒嘉</option>
+            <option value="王茂泉">王茂泉</option>
+            <option value="楊政嘉">楊政嘉</option>
+            <option value="黃阡汶">黃阡汶</option>
+            <option value="侯志賢">侯志賢</option>
+            <option value="楊惠堂">楊惠堂</option>
+            <option value="許俊然">許俊然</option>
+            <option value="張正義">張正義</option>
+            <option value="阮維慶">阮維慶</option>
+        </select>
+
+        <select id="equipment">
+            <option value="">-- 選擇設備 --</option>
+            <option value="七尺機">七尺機</option>
+            <option value="角浪機">角浪機</option>
+            <option value="六尺機">六尺機</option>
+            <option value="中圓浪機">中圓浪機</option>
+            <option value="台泥機">台泥機</option>
+            <option value="薄板機">薄板機</option>
+        </select>
+
+        <select id="status">
+            <option value="">-- 選擇品質狀態 --</option>
+            <option value="品質正常">品質正常</option>
+            <option value="可繼續生產但須微調">可繼續生產但須微調</option>
+            <option value="需要停機調整">需要停機調整</option>
+        </select>
+
+        <button id="submitBtn" class="submit-btn" onclick="submitInspection()">自主檢查確認</button>
+    </div>
+
+    <div class="status-board-container">
+        <div class="date-selector">
+            <label for="view-date">查詢特定日期設備狀態：</label>
+            <input type="date" id="view-date" onchange="renderStatusBoard()">
+        </div>
+        <div id="status-board">
+            <h2>載入雲端資料中...請稍候</h2>
+            <!-- 設備圓圈會由 JS 動態生成 -->
+        </div>
+    </div>
+
+    <div class="history-section">
+        <h2>近 50 筆自主檢查紀錄</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>時間</th>
+                    <th>人員</th>
+                    <th>設備</th>
+                    <th>品質狀態</th>
+                </tr>
+            </thead>
+            <tbody id="history-body">
+                <!-- 歷史紀錄動態生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // ================== 開發者工具防護機制 START ==================
+    // 1. 禁用鍵盤快捷鍵 (F12, Ctrl+Shift+I, Ctrl+U 等)
+    document.addEventListener('keydown', function (e) {
+        if (
+            e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) || 
+            (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) || 
+            (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) || 
+            (e.ctrlKey && (e.key === 'U' || e.key === 'u'))
+        ) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 2. Debugger 陷阱：只要有人成功打開開發人員工具，就會陷入無限暫停迴圈
+    setInterval(function() {
+        checkDevTools();
+    }, 1000);
+
+    function checkDevTools() {
+        // 這行程式碼在正常瀏覽時不會有影響，但開發者工具一打開就會卡死畫面
+        (function() { debugger; })();
+    }
+    // ================== 開發者工具防護機制 END ==================
+
+
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxarx1BWpO2lTskr1ex8DD0pPjZOyJ50VPBU6lXfCPTygkiV0DVreJDXNuXFZsNTsQ-/exec";
+
+    const equipments = ["七尺機", "角浪機", "六尺機", "中圓浪機", "台泥機", "薄板機"];
+    let records = [];
+    let isTestMode = false;
+
+    // 切換測試模式
+    function toggleTestMode() {
+        const btn = document.getElementById("testModeBtn");
+        if (isTestMode) {
+            isTestMode = false;
+            btn.innerText = "測試人員模式";
+            btn.classList.remove("active");
+            alert("已關閉測試模式，恢復正常時間限制。");
+        } else {
+            const pwd = prompt("請輸入測試人員密碼：");
+            if (pwd === "jvcoiadnvirqbhrmqrijarmvbr58588vqevqevrqeamb9qrjrmqrmgpoqkgpqrkgpregregfewfqef29grg2r8gqeg1rg8qg1") {
+                isTestMode = true;
+                btn.innerText = "測試模式 (已開啟)";
+                btn.classList.add("active");
+                alert("✅ 測試模式已開啟！\n(已解除非夜班時段與1小時檢查間隔限制)");
+            } else if (pwd !== null) {
+                alert("❌ 密碼錯誤");
+            }
+        }
+    }
+
+    // 初始化日期選擇器
+    function initDatePicker() {
+        const date = new Date();
+        // 如果時間為早上 8 點以後，預設查詢「當天」的狀態
+        if (date.getHours() >= 8) {
+            date.setDate(date.getDate());
+        }
+        
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        document.getElementById("view-date").value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // 取得指定設備最後一次的檢查紀錄
+    function getLastRecord(equip) {
+        let equipRecords = records.filter(r => r.equipment === equip);
+        return equipRecords.length > 0 ? equipRecords[equipRecords.length - 1] : null;
+    }
+
+    // 從 Google Sheets 載入資料
+    async function loadData() {
+        try {
+            const response = await fetch(SCRIPT_URL);
+            records = await response.json();
+            updateUI();
+        } catch (error) {
+            console.error("載入失敗", error);
+            alert("載入資料失敗，請檢查網路連線。");
+            document.getElementById("status-board").innerHTML = "<h2 style='color:red;'>載入失敗，請重新整理</h2>";
+        }
+    }
+
+    // 提交檢查到 Google Sheets
+    async function submitInspection() {
+        const now = new Date();
+        
+        // 限制非夜班時段 (08:00 - 23:59) 不得按下確認按鈕 (測試模式下略過此檢查)
+        if (!isTestMode && now.getHours() >= 8) {
+            alert("目前非夜班時段");
+            return;
+        }
+
+        const operator = document.getElementById("operator").value;
+        const equipment = document.getElementById("equipment").value;
+        const status = document.getElementById("status").value;
+
+        if (!operator || !equipment || !status) {
+            alert("有項目未選取");
+            return;
+        }
+
+        const lastRecord = getLastRecord(equipment);
+
+        // 限制同一設備需間隔1小時 (測試模式下略過此檢查)
+        if (!isTestMode && lastRecord) {
+            const lastTime = new Date(lastRecord.timestamp);
+            const diffHours = (now - lastTime) / (1000 * 60 * 60);
+
+            if (diffHours < 1) {
+                const timeString = lastTime.toLocaleTimeString('zh-TW', { hour12: false });
+                alert(`還沒滿1小時自檢的時間: ${timeString}`);
+                return;
+            }
+        }
+
+        const newRecord = {
+            timestamp: now.getTime(),
+            date: now.toLocaleDateString('zh-TW'),
+            operator: operator,
+            equipment: equipment,
+            status: status
+        };
+
+        // UI 狀態切換，避免重複點擊
+        const btn = document.getElementById("submitBtn");
+        btn.innerText = "資料上傳中...";
+        btn.disabled = true;
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(newRecord)
+            });
+
+            // 上傳成功，將資料加入本地陣列並更新畫面
+            records.push(newRecord);
+            updateUI();
+
+            // 重置選單
+            document.getElementById("operator").value = "";
+            document.getElementById("equipment").value = "";
+            document.getElementById("status").value = "";
+
+            alert("✅ 自主檢查已成功紀錄至雲端！");
+
+        } catch (error) {
+            console.error("上傳失敗", error);
+            alert("資料上傳失敗，請稍後再試。");
+        } finally {
+            btn.innerText = "自主檢查確認";
+            btn.disabled = false;
+        }
+    }
+
+    // 更新介面
+    function updateUI() {
+        renderStatusBoard();
+        renderHistory();
+        checkDailyAudit();
+    }
+
+    // 渲染設備狀態 (根據日期選擇器所選的日期)
+    function renderStatusBoard() {
+        const board = document.getElementById("status-board");
+        board.innerHTML = ""; // 清空現有內容
+        
+        // 取得選擇器上的日期
+        const viewDateInput = document.getElementById("view-date").value;
+        let targetDateStr;
+        let displayTitleDate;
+
+        if (viewDateInput) {
+            // 將 YYYY-MM-DD 轉為符合紀錄存儲格式的字串 (例如 YYYY/M/D)
+            let [y, m, d] = viewDateInput.split('-');
+            targetDateStr = new Date(y, m - 1, d).toLocaleDateString('zh-TW');
+            displayTitleDate = `${y}/${m}/${d}`;
+        } else {
+            targetDateStr = new Date().toLocaleDateString('zh-TW');
+            displayTitleDate = "今日";
+        }
+
+        const title = document.createElement("h2");
+        title.innerText = `${displayTitleDate} 各設備自檢狀態 (00:00 - 08:00)`;
+        board.appendChild(title);
+
+        equipments.forEach(equip => {
+            // 過濾出目標日期，且時間在 00:00 到 08:00 之間的紀錄
+            let targetRecords = records.filter(r => {
+                let rDate = new Date(r.timestamp);
+                // 加入 isTestMode 判斷：開啟測試模式時，顯示全天紀錄；關閉時，只顯示 0-8 點紀錄
+                return r.date === targetDateStr && r.equipment === equip && (isTestMode || rDate.getHours() < 8);
+            });
+
+            const row = document.createElement("div");
+            row.className = "equipment-row";
+
+            const nameDiv = document.createElement("div");
+            nameDiv.className = "equipment-name";
+            nameDiv.innerText = equip;
+            row.appendChild(nameDiv);
+
+            const circlesDiv = document.createElement("div");
+            circlesDiv.className = "circles-container";
+
+            for (let i = 0; i < 6; i++) {
+                const wrapper = document.createElement("div");
+                wrapper.className = "circle-wrapper";
+
+                const circle = document.createElement("div");
+                circle.className = "circle";
+
+                const timeLabel = document.createElement("div");
+                timeLabel.className = "time-label";
+
+                if (i < targetRecords.length) {
+                    const rec = targetRecords[i];
+                    let rTime = new Date(rec.timestamp);
+                    timeLabel.innerText = rTime.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+                    if (rec.status === "品質正常") circle.classList.add("green");
+                    else if (rec.status === "可繼續生產但須微調") circle.classList.add("yellow");
+                    else if (rec.status === "需要停機調整") circle.classList.add("red");
+                }
+
+                wrapper.appendChild(circle);
+                wrapper.appendChild(timeLabel);
+                circlesDiv.appendChild(wrapper);
+            }
+
+            row.appendChild(circlesDiv);
+            board.appendChild(row);
+        });
+    }
+
+    // 渲染歷史紀錄 (近 50 筆)
+    function renderHistory() {
+        const tbody = document.getElementById("history-body");
+        tbody.innerHTML = "";
+
+        const recentRecords = [...records].reverse().slice(0, 50);
+
+        recentRecords.forEach(rec => {
+            const tr = document.createElement("tr");
+            const rTime = new Date(rec.timestamp).toLocaleString('zh-TW', { hour12: false });
+
+            let statusColor = "#000";
+            if (rec.status === "需要停機調整") statusColor = "red";
+            else if (rec.status === "可繼續生產但須微調") statusColor = "#d39e00";
+            else if (rec.status === "品質正常") statusColor = "green";
+
+            tr.innerHTML = `
+                <td>${rTime}</td>
+                <td>${rec.operator}</td>
+                <td>${rec.equipment}</td>
+                <td style="color: ${statusColor}; font-weight: bold;">${rec.status}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 每日早上 08:20 自動稽核與警報顯示
+    function checkDailyAudit() {
+        const warningDiv = document.getElementById("violation-warnings");
+        warningDiv.innerHTML = "";
+
+        const now = new Date();
+        if (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() < 20)) {
+            return;
+        }
+
+        const dayOfWeek = now.getDay();
+        // 保留您原本設定的 0 (週日) 或 1 (週一) 邏輯
+        if (dayOfWeek === 0 || dayOfWeek === 1) {
+            return;
+        }
+
+        const todayStr = now.toLocaleDateString('zh-TW');
+
+        // 先抓出該日期 00:00 到 08:00 所有設備的檢查紀錄
+        let allMorningRecords = records.filter(r => {
+            let rTime = new Date(r.timestamp);
+            return r.date === todayStr && rTime.getHours() < 8;
+        });
+
+        // 判斷 1：如果所有設備都沒有紀錄，代表全部是灰色圓圈，顯示「未開機」
+        if (allMorningRecords.length === 0) {
+            const msg = document.createElement("div");
+            msg.style.color = "gray"; 
+            msg.innerText = `${todayStr} 未有自檢紀錄`;
+            warningDiv.appendChild(msg);
+            return; 
+        }
+
+        // 判斷 2：如果有一台以上設備有紀錄，才逐一檢查「有紀錄的設備」是否滿5次
+        equipments.forEach(equip => {
+            let targetRecords = records.filter(r => {
+                let rTime = new Date(r.timestamp);
+                return r.date === todayStr && r.equipment === equip && rTime.getHours() < 8;
+            });
+
+            // 只有當該設備有自檢紀錄時（大於0次），才進行違規稽核
+            if (targetRecords.length > 0) {
+                let isViolation = false;
+
+                if (targetRecords.length < 5) {
+                    isViolation = true;
+                } else {
+                    targetRecords.sort((a, b) => a.timestamp - b.timestamp);
+                    for (let i = 1; i < targetRecords.length; i++) {
+                        if ((targetRecords[i].timestamp - targetRecords[i - 1].timestamp) > 1.5 * 60 * 60 * 1000) {
+                            isViolation = true;
+                            break;
+                        }
+                    }
+                }
+
+                // 如果違規，抓取最後一位操作該設備的人員名稱並顯示紅字
+                if (isViolation) {
+                    let violationOperator = targetRecords[targetRecords.length - 1].operator;
+                    const msg = document.createElement("div");
+                    msg.style.color = "red";
+                    msg.innerText = `${equip} ${violationOperator} ${todayStr} 在早上0點到8點未確實實施自主檢查`;
+                    warningDiv.appendChild(msg);
+                }
+            }
+        });
+    }
+
+    // 網頁載入時，初始化日期並從 Google 雲端抓取歷史資料
+    window.onload = function() {
+        initDatePicker();
+        loadData();
+    };
+
+    setInterval(checkDailyAudit, 60000);
+
+</script>
+
+</body>
+</html>
