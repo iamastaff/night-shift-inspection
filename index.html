@@ -38,10 +38,21 @@
         .date-selector label { font-size: 18px; font-weight: bold; margin-right: 10px; }
         .date-selector input { padding: 8px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; }
         
+        /* 電腦版與共用設定 */
         .equipment-row { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; }
-        .equipment-name { width: 100px; font-weight: bold; font-size: 18px; }
-        .circles-container { display: flex; gap: 15px; }
-        .circle-wrapper { display: flex; flex-direction: column; align-items: center; width: 60px; }
+        .equipment-name { width: 100px; font-weight: bold; font-size: 18px; flex-shrink: 0; }
+        .circles-container { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 5px; width: 100%; }
+        .circle-wrapper { display: flex; flex-direction: column; align-items: center; min-width: 50px; }
+
+        /* 手機版專屬設定 (當螢幕寬度小於 600px 時觸發) */
+        @media (max-width: 600px) {
+            .equipment-row { flex-direction: column; align-items: flex-start; }
+            .equipment-name { width: 100%; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #ddd; }
+            .circles-container { justify-content: space-between; gap: 5px; }
+            .circle-wrapper { min-width: 40px; }
+            .circle { width: 25px; height: 25px; }
+            .time-label { font-size: 11px; transform: scale(0.9); }
+        }
         .circle { width: 30px; height: 30px; border-radius: 50%; background-color: #ccc; margin-bottom: 5px; }
         .circle.green { background-color: #28a745; }
         .circle.yellow { background-color: #ffc107; }
