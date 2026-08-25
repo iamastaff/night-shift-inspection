@@ -49,14 +49,16 @@
         .equipment-row { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; width: 100%; }
         .equipment-name { width: 100px; font-weight: bold; font-size: 18px; flex-shrink: 0; white-space: nowrap; }
         
-        .circles-container { display: flex; justify-content: flex-start; gap: 15px; overflow-x: auto; padding-bottom: 5px; width: 100%; }
-        .circle-wrapper { display: flex; flex-direction: column; align-items: center; min-width: 45px; flex-shrink: 0; }
+        .circles-container { display: flex; justify-content: flex-start; gap: 15px; overflow-x: auto; padding-bottom: 10px; width: 100%; }
+        .circle-wrapper { display: flex; flex-direction: column; align-items: center; min-width: 50px; flex-shrink: 0; }
         .circle { width: 30px; height: 30px; border-radius: 50%; background-color: #ccc; margin-bottom: 5px; }
         .circle.green { background-color: #28a745; }
         .circle.yellow { background-color: #ffc107; }
         .circle.pink { background-color: #ff69b4; }
         .circle.red { background-color: #dc3545; }
-        .time-label { font-size: 12px; color: #555; height: 14px; }
+        
+        /* 修改時間標籤樣式，允許顯示兩行(時間與姓名) */
+        .time-label { font-size: 12px; color: #555; min-height: 28px; text-align: center; line-height: 1.2; }
 
         .history-section { margin-top: 40px; overflow-x: auto; width: 100%; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: center; min-width: 400px; }
@@ -75,10 +77,11 @@
             .equipment-row { flex-direction: column; align-items: flex-start; padding: 10px; }
             .equipment-name { width: 100%; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #ddd; text-align: left; font-size: 15px; }
             
-            .circles-container { gap: 2px; justify-content: space-around; padding-bottom: 0px; }
-            .circle-wrapper { min-width: 32px; }
-            .circle { width: 20px; height: 20px; margin-bottom: 2px; }
-            .time-label { font-size: 9px; transform: scale(0.85); transform-origin: top center; }
+            .circles-container { gap: 4px; justify-content: space-around; padding-bottom: 0px; }
+            .circle-wrapper { min-width: 36px; }
+            .circle { width: 22px; height: 22px; margin-bottom: 4px; }
+            /* 調整手機版文字大小與縮放 */
+            .time-label { font-size: 10px; transform: scale(0.9); transform-origin: top center; min-height: 24px; }
 
             .history-section { margin-top: 30px; }
             table { min-width: 100%; font-size: 13px; }
@@ -386,6 +389,7 @@
             btn.innerText = t("test_mode");
             btn.classList.remove("active");
             alert(t("msg_test_off"));
+            updateUI(); // 切換模式後自動刷新畫面
         } else {
             const pwd = prompt(t("msg_test_pwd"));
             if (pwd !== null && pwd !== "") {
@@ -404,6 +408,7 @@
                         btn.innerText = t("test_mode_on");
                         btn.classList.add("active");
                         alert(t("msg_test_on"));
+                        updateUI(); // 切換模式後自動刷新畫面
                     } else {
                         alert(t("msg_pwd_err"));
                         btn.innerText = t("test_mode");
@@ -629,7 +634,13 @@
                 if (i < targetRecords.length) {
                     const rec = targetRecords[i];
                     let rTime = new Date(rec.timestamp);
-                    timeLabel.innerText = rTime.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+                    let timeStr = rTime.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+                    
+                    // 擷取已經遮蔽過的姓名的前三個字
+                    let shortName = maskName(rec.operator).substring(0, 3);
+                    
+                    // 用兩行顯示時間與姓名
+                    timeLabel.innerHTML = `${timeStr}<br><span style="color: #007bff; font-weight: bold;">${shortName}</span>`;
 
                     if (rec.status === "品質正常") circle.classList.add("green");
                     else if (rec.status === "可收板,但須微調") circle.classList.add("yellow");
@@ -720,12 +731,11 @@
 
     // 初始化與啟動
     window.onload = async function() {
-        applyTranslations(); // 先套用一次初始語言
+        applyTranslations(); 
         
         try {
             document.getElementById("login-hint").innerText = t("req_config");
             
-            // 【向雲端後台動態請求 LIFF_ID】
             const configRes = await fetch(SCRIPT_URL + "?action=getConfig");
             const config = await configRes.json();
             DYNAMIC_LIFF_ID = config.liffId;
