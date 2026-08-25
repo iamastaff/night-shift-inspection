@@ -8,7 +8,7 @@
         *, *::before, *::after { box-sizing: border-box; }
 
         body { 
-            font-family: "Microsoft JhengHei", sans-serif; 
+            font-family: "Microsoft JhengHei", Arial, sans-serif; 
             background-color: #f4f4f9; 
             padding: 10px; 
             margin: 0;
@@ -19,6 +19,11 @@
         .container { position: relative; width: 100%; max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow: hidden; }
         h1, h2 { text-align: center; color: #333; }
         
+        /* 語言切換選單 */
+        .lang-switch-container { position: absolute; top: 10px; left: 10px; z-index: 100; }
+        .lang-switch-container select { padding: 4px; font-size: 12px; border-radius: 4px; cursor: pointer; background-color: #f1f3f5; border: 1px solid #ccc; font-weight: bold; }
+
+        /* 測試模式按鈕 */
         .test-mode-btn { position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 11px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; opacity: 0.8; z-index: 100; }
         .test-mode-btn:hover { background-color: #5a6268; opacity: 1; }
         .test-mode-btn.active { background-color: #28a745; opacity: 1; }
@@ -30,7 +35,6 @@
         /* 表單區塊 */
         .form-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; width: 100%; }
         select, .operator-display, button.submit-btn { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; max-width: 100%; }
-        /* 綁定後的姓名顯示區塊 */
         .operator-display { background-color: #e9ecef; font-weight: bold; color: #007bff; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; }
         
         button.submit-btn { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; max-width: 250px; }
@@ -62,21 +66,20 @@
 
         @media (max-width: 768px) {
             .container { padding: 15px 10px; }
-            h1 { font-size: 22px; }
-            h2 { font-size: 18px; }
+            h1 { font-size: 20px; }
+            h2 { font-size: 16px; }
             
-            .form-group select, .form-group .operator-display { width: 45%; flex-grow: 1; text-align: center; }
+            .form-group select, .form-group .operator-display { width: 45%; flex-grow: 1; text-align: center; font-size: 14px; }
             .form-group select:nth-child(3) { width: 100%; }
             
             .equipment-row { flex-direction: column; align-items: flex-start; padding: 10px; }
-            .equipment-name { width: 100%; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #ddd; text-align: left; font-size: 16px; }
+            .equipment-name { width: 100%; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #ddd; text-align: left; font-size: 15px; }
             
             .circles-container { gap: 2px; justify-content: space-around; padding-bottom: 0px; }
             .circle-wrapper { min-width: 32px; }
             .circle { width: 20px; height: 20px; margin-bottom: 2px; }
             .time-label { font-size: 9px; transform: scale(0.85); transform-origin: top center; }
 
-            /* 優化手機版歷史紀錄表格，使其自動適應螢幕 */
             .history-section { margin-top: 30px; }
             table { min-width: 100%; font-size: 13px; }
             th, td { padding: 6px 2px; word-break: break-word; }
@@ -89,42 +92,50 @@
 
 <!-- LINE 登入遮罩畫面 -->
 <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: sans-serif;">
-    <h2 style="color: #333; margin-bottom: 20px;">夜班自主檢查系統</h2>
-    <p style="color: #666; margin-bottom: 30px;" id="login-hint">向伺服器請求配置中...</p>
-    <button id="loginBtn" onclick="liff.login()" style="display:none; padding: 12px 30px; background-color: #06C755; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <h2 style="color: #333; margin-bottom: 20px;" data-i18n="app_title">夜班自主檢查系統</h2>
+    <p style="color: #666; margin-bottom: 30px;" id="login-hint" data-i18n="req_config">向伺服器請求配置中...</p>
+    <button id="loginBtn" onclick="liff.login()" style="display:none; padding: 12px 30px; background-color: #06C755; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" data-i18n="line_login">
         使用 LINE 登入
     </button>
 </div>
 
 <!-- 首次登入綁定遮罩畫面 -->
 <div id="binding-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9998; flex-direction: column; justify-content: center; align-items: center; font-family: sans-serif;">
-    <h2 style="color: #333; margin-bottom: 20px;">首次登入帳號綁定</h2>
-    <p style="color: #dc3545; font-weight: bold; margin-bottom: 20px;">⚠️ 注意：一經綁定將無法自行更改</p>
-    <p style="color: #666; margin-bottom: 15px;">請選擇您的姓名以綁定此 LINE 帳號：</p>
+    <h2 style="color: #333; margin-bottom: 20px;" data-i18n="bind_title">首次登入帳號綁定</h2>
+    <p style="color: #dc3545; font-weight: bold; margin-bottom: 20px;" data-i18n="bind_warn">⚠️ 注意：一經綁定將無法自行更改</p>
+    <p style="color: #666; margin-bottom: 15px;" data-i18n="bind_hint">請選擇您的姓名以綁定此 LINE 帳號：</p>
     
     <select id="bind-operator" style="padding: 10px; font-size: 16px; border-radius: 5px; margin-bottom: 20px; width: 250px;">
-        <option value="">載入名單中...</option>
+        <option value="" data-i18n="bind_loading">載入名單中...</option>
     </select>
     
-    <button id="bindBtn" onclick="bindLineAccount()" style="padding: 12px 30px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <button id="bindBtn" onclick="bindLineAccount()" style="padding: 12px 30px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" data-i18n="bind_btn">
         確認綁定
     </button>
 </div>
 
 <div class="container">
-    <button id="testModeBtn" class="test-mode-btn" onclick="toggleTestMode()">測試人員模式</button>
+    <!-- 語言切換選單 -->
+    <div class="lang-switch-container">
+        <select id="langSwitch" onchange="changeLanguage(this.value)">
+            <option value="zh-TW">繁體中文</option>
+            <option value="vi-VN">Tiếng Việt</option>
+        </select>
+    </div>
+
+    <button id="testModeBtn" class="test-mode-btn" onclick="toggleTestMode()" data-i18n="test_mode">測試人員模式</button>
     
     <div id="violation-warnings"></div>
 
-    <h1>夜班自主檢查確認</h1>
+    <h1 data-i18n="main_title">夜班自主檢查確認</h1>
     
     <div class="form-group">
-        <div id="operator-display" class="operator-display">
+        <div id="operator-display" class="operator-display" data-i18n="data_loading">
             資料載入中...
         </div>
 
         <select id="equipment">
-            <option value="">-- 選擇設備 --</option>
+            <option value="" data-i18n="select_equip">-- 選擇設備 --</option>
             <option value="七*機">七*機</option>
             <option value="角*機">角*機</option>
             <option value="六*機">六*機</option>
@@ -134,35 +145,35 @@
         </select>
 
         <select id="status">
-            <option value="">-- 選擇品質狀態 --</option>
-            <option value="品質正常">品質正常</option>
-            <option value="可收板,但須微調">可收板,但須微調</option>
-            <option value="須暫停收板,調整">須暫停收板,調整</option>
-            <option value="需要停機調整">需要停機調整</option>
+            <option value="" data-i18n="select_status">-- 選擇品質狀態 --</option>
+            <option value="品質正常" data-i18n="status_normal">品質正常</option>
+            <option value="可收板,但須微調" data-i18n="status_adjust">可收板,但須微調</option>
+            <option value="須暫停收板,調整" data-i18n="status_pause">須暫停收板,調整</option>
+            <option value="需要停機調整" data-i18n="status_stop">需要停機調整</option>
         </select>
 
-        <button id="submitBtn" class="submit-btn" onclick="submitInspection()">自主檢查確認</button>
+        <button id="submitBtn" class="submit-btn" onclick="submitInspection()" data-i18n="submit_btn">自主檢查確認</button>
     </div>
 
     <div class="status-board-container">
         <div class="date-selector">
-            <label for="view-date">查詢特定日期設備狀態：</label>
+            <label for="view-date" data-i18n="query_date">查詢特定日期設備狀態：</label>
             <input type="date" id="view-date" onchange="renderStatusBoard()">
         </div>
         <div id="status-board">
-            <h2>載入雲端資料中...請稍候</h2>
+            <h2 data-i18n="board_loading">載入雲端資料中...請稍候</h2>
         </div>
     </div>
 
     <div class="history-section">
-        <h2>近 50 筆自主檢查紀錄</h2>
+        <h2 data-i18n="history_title">近 50 筆自主檢查紀錄</h2>
         <table>
             <thead>
                 <tr>
-                    <th>時間</th>
-                    <th>人員</th>
-                    <th>設備</th>
-                    <th>品質狀態</th>
+                    <th data-i18n="col_time">時間</th>
+                    <th data-i18n="col_operator">人員</th>
+                    <th data-i18n="col_equip">設備</th>
+                    <th data-i18n="col_status">品質狀態</th>
                 </tr>
             </thead>
             <tbody id="history-body">
@@ -181,6 +192,7 @@
     setInterval(function() { (function() { debugger; })(); }, 1000);
     // ========================================================
 
+    // ⚠️⚠️⚠️ 記得填寫你的 Google Apps Script 網址 ⚠️⚠️⚠️
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxarx1BWpO2lTskr1ex8DD0pPjZOyJ50VPBU6lXfCPTygkiV0DVreJDXNuXFZsNTsQ-/exec"; 
     
     let DYNAMIC_LIFF_ID = ""; 
@@ -193,7 +205,175 @@
     let currentLineId = "";
     let currentUser = ""; 
 
-    // 【新增】遮蔽姓名的函數：把第二個字替換為 "O"
+    // ================== 雙語翻譯字典 (I18N) ==================
+    const i18n = {
+        "zh-TW": {
+            app_title: "夜班自主檢查系統",
+            req_config: "向伺服器請求配置中...",
+            line_login: "使用 LINE 登入",
+            verify_hint: "請先驗證身分以進入系統",
+            verifying: "系統驗證中，請稍候...",
+            config_fail: "伺服器連線失敗或配置異常。",
+            bind_title: "首次登入帳號綁定",
+            bind_warn: "⚠️ 注意：一經綁定將無法自行更改",
+            bind_hint: "請選擇您的姓名以綁定此 LINE 帳號：",
+            bind_btn: "確認綁定",
+            bind_select_default: "-- 請選擇您的姓名 --",
+            bind_loading: "載入名單中...",
+            bind_empty: "無可用名單，請聯繫主管",
+            test_mode: "測試人員模式",
+            test_mode_on: "測試模式 (已開啟)",
+            main_title: "夜班自主檢查確認",
+            data_loading: "資料載入中...",
+            select_equip: "-- 選擇設備 --",
+            select_status: "-- 選擇品質狀態 --",
+            status_normal: "品質正常",
+            status_adjust: "可收板,但須微調",
+            status_pause: "須暫停收板,調整",
+            status_stop: "需要停機調整",
+            submit_btn: "自主檢查確認",
+            query_date: "查詢特定日期設備狀態：",
+            board_loading: "載入雲端資料中...請稍候",
+            board_title_suffix: " 各設備自檢狀態 (00:00 - 08:00)",
+            today: "今日",
+            history_title: "近 50 筆自主檢查紀錄",
+            col_time: "時間",
+            col_operator: "人員",
+            col_equip: "設備",
+            col_status: "品質狀態",
+            msg_test_off: "已關閉測試模式，恢復正常時間限制。",
+            msg_test_pwd: "請輸入測試人員密碼：",
+            msg_test_verifying: "驗證中...",
+            msg_test_on: "✅ 測試模式已開啟！\n(已解除非夜班時段與半小時檢查間隔限制)",
+            msg_pwd_err: "❌ 密碼錯誤",
+            msg_net_err: "驗證或連線失敗，請檢查網路！",
+            msg_bind_success: "✅ 成功綁定為：",
+            msg_bind_fail: "綁定失敗，請稍後再試。",
+            msg_alert_name: "請選擇您的姓名！",
+            msg_binding: "綁定中...",
+            msg_not_night: "目前非夜班時段",
+            msg_missing_item: "有項目未選取或尚未綁定帳號！",
+            msg_time_limit: "還沒滿半小時,請勿按按鈕: ",
+            msg_submitting: "資料上傳中...",
+            msg_submit_ok: "✅ 自主檢查已成功紀錄至雲端！",
+            msg_submit_fail: "資料上傳失敗，請稍後再試。",
+            msg_no_record: "未有自檢紀錄",
+            msg_violation: "在早上0點到8點未確實實施自主檢查"
+        },
+        "vi-VN": {
+            app_title: "Hệ thống kiểm tra ca đêm",
+            req_config: "Đang yêu cầu cấu hình...",
+            line_login: "Đăng nhập bằng LINE",
+            verify_hint: "Vui lòng xác minh để vào hệ thống",
+            verifying: "Đang xác minh, vui lòng đợi...",
+            config_fail: "Lỗi kết nối máy chủ.",
+            bind_title: "Liên kết tài khoản lần đầu",
+            bind_warn: "⚠️ Lưu ý: Không thể tự thay đổi sau khi liên kết",
+            bind_hint: "Vui lòng chọn tên của bạn:",
+            bind_btn: "Xác nhận liên kết",
+            bind_select_default: "-- Chọn tên của bạn --",
+            bind_loading: "Đang tải danh sách...",
+            bind_empty: "Không có danh sách, vui lòng liên hệ quản lý",
+            test_mode: "Chế độ kiểm tra",
+            test_mode_on: "Chế độ KT (Đang bật)",
+            main_title: "Xác nhận kiểm tra ca đêm",
+            data_loading: "Đang tải dữ liệu...",
+            select_equip: "-- Chọn thiết bị --",
+            select_status: "-- Chọn trạng thái --",
+            status_normal: "Chất lượng bình thường",
+            status_adjust: "Có thể thu ván, cần tinh chỉnh",
+            status_pause: "Tạm dừng thu ván, điều chỉnh",
+            status_stop: "Cần dừng máy để điều chỉnh",
+            submit_btn: "Xác nhận kiểm tra",
+            query_date: "Tra cứu trạng thái thiết bị theo ngày:",
+            board_loading: "Đang tải dữ liệu... vui lòng đợi",
+            board_title_suffix: " Trạng thái tự KT (00:00 - 08:00)",
+            today: "Hôm nay",
+            history_title: "50 bản ghi kiểm tra gần nhất",
+            col_time: "Thời gian",
+            col_operator: "Nhân viên",
+            col_equip: "Thiết bị",
+            col_status: "Trạng thái",
+            msg_test_off: "Đã tắt chế độ kiểm tra, khôi phục giới hạn.",
+            msg_test_pwd: "Vui lòng nhập mật khẩu:",
+            msg_test_verifying: "Đang xác minh...",
+            msg_test_on: "✅ Đã bật chế độ kiểm tra!\n(Bỏ qua thời gian ca đêm và 30 phút)",
+            msg_pwd_err: "❌ Sai mật khẩu",
+            msg_net_err: "Lỗi kết nối, vui lòng kiểm tra mạng!",
+            msg_bind_success: "✅ Liên kết thành công: ",
+            msg_bind_fail: "Liên kết thất bại, vui lòng thử lại.",
+            msg_alert_name: "Vui lòng chọn tên!",
+            msg_binding: "Đang liên kết...",
+            msg_not_night: "Hiện không phải ca đêm",
+            msg_missing_item: "Vui lòng chọn đầy đủ thông tin!",
+            msg_time_limit: "Chưa đủ 30 phút, vui lòng không nhấn: ",
+            msg_submitting: "Đang tải lên...",
+            msg_submit_ok: "✅ Đã ghi nhận thành công!",
+            msg_submit_fail: "Tải lên thất bại, vui lòng thử lại.",
+            msg_no_record: "Không có bản ghi kiểm tra",
+            msg_violation: "chưa thực hiện kiểm tra từ 0h đến 8h"
+        }
+    };
+
+    let currentLang = localStorage.getItem('appLang') || 'zh-TW';
+    document.getElementById('langSwitch').value = currentLang;
+
+    function t(key) {
+        return i18n[currentLang][key] || key;
+    }
+
+    function changeLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem('appLang', lang);
+        applyTranslations();
+        updateUI(); 
+    }
+
+    function applyTranslations() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (el.tagName === 'INPUT' && el.type === 'button') {
+                el.value = t(key);
+            } else {
+                el.innerText = t(key);
+            }
+        });
+        
+        const statusSelect = document.getElementById("status");
+        statusSelect.options[0].innerText = t("select_status");
+        statusSelect.options[1].innerText = t("status_normal");
+        statusSelect.options[2].innerText = t("status_adjust");
+        statusSelect.options[3].innerText = t("status_pause");
+        statusSelect.options[4].innerText = t("status_stop");
+
+        const bindSelect = document.getElementById("bind-operator");
+        if(bindSelect && bindSelect.options.length > 0 && bindSelect.value === "") {
+            bindSelect.options[0].innerText = t("bind_select_default");
+        }
+
+        if(currentUser) {
+            document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
+        }
+        
+        const btn = document.getElementById("testModeBtn");
+        if(isTestMode) {
+            btn.innerText = t("test_mode_on");
+        } else {
+            btn.innerText = t("test_mode");
+        }
+    }
+
+    function translateStatus(statusText) {
+        if (statusText === "品質正常") return t("status_normal");
+        if (statusText === "可收板,但須微調") return t("status_adjust");
+        if (statusText === "須暫停收板,調整") return t("status_pause");
+        if (statusText === "需要停機調整") return t("status_stop");
+        return statusText;
+    }
+
+    // ========================================================
+
+    // 遮蔽姓名的函數：把第二個字替換為 "O"
     function maskName(name) {
         if (!name || name.length <= 1) return name || "";
         return name.charAt(0) + "O" + name.substring(2);
@@ -203,13 +383,13 @@
         const btn = document.getElementById("testModeBtn");
         if (isTestMode) {
             isTestMode = false;
-            btn.innerText = "測試人員模式";
+            btn.innerText = t("test_mode");
             btn.classList.remove("active");
-            alert("已關閉測試模式，恢復正常時間限制。");
+            alert(t("msg_test_off"));
         } else {
-            const pwd = prompt("請輸入測試人員密碼：");
+            const pwd = prompt(t("msg_test_pwd"));
             if (pwd !== null && pwd !== "") {
-                btn.innerText = "驗證中...";
+                btn.innerText = t("msg_test_verifying");
                 btn.disabled = true;
                 try {
                     const res = await fetch(SCRIPT_URL, {
@@ -221,16 +401,16 @@
                     
                     if (data.result === "success") {
                         isTestMode = true;
-                        btn.innerText = "測試模式 (已開啟)";
+                        btn.innerText = t("test_mode_on");
                         btn.classList.add("active");
-                        alert("✅ 測試模式已開啟！\n(已解除非夜班時段與半小時檢查間隔限制)");
+                        alert(t("msg_test_on"));
                     } else {
-                        alert("❌ 密碼錯誤");
-                        btn.innerText = "測試人員模式";
+                        alert(t("msg_pwd_err"));
+                        btn.innerText = t("test_mode");
                     }
                 } catch (error) {
-                    alert("驗證連線失敗，請檢查網路！");
-                    btn.innerText = "測試人員模式";
+                    alert(t("msg_net_err"));
+                    btn.innerText = t("test_mode");
                 } finally {
                     btn.disabled = false;
                 }
@@ -252,7 +432,7 @@
         return equipRecords.length > 0 ? equipRecords[equipRecords.length - 1] : null;
     }
 
-    // 載入資料 (包含打單紀錄 與 綁定名單)
+    // 載入資料
     async function loadData() {
         try {
             const response = await fetch(SCRIPT_URL);
@@ -263,7 +443,6 @@
 
             if (bindings[currentLineId]) {
                 currentUser = bindings[currentLineId];
-                // 顯示隱藏後的姓名
                 document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
                 document.getElementById("login-overlay").style.display = "none";
                 document.getElementById("binding-overlay").style.display = "none";
@@ -274,15 +453,15 @@
                 const availableOperators = allOperators.filter(name => !boundNames.includes(name));
                 
                 const bindSelect = document.getElementById("bind-operator");
-                bindSelect.innerHTML = '<option value="">-- 請選擇您的姓名 --</option>';
+                bindSelect.innerHTML = `<option value="">${t('bind_select_default')}</option>`;
                 
                 if (availableOperators.length === 0) {
-                    bindSelect.innerHTML = '<option value="">無可用名單，請聯繫主管</option>';
+                    bindSelect.innerHTML = `<option value="">${t('bind_empty')}</option>`;
                 } else {
                     availableOperators.forEach(name => {
                         const opt = document.createElement("option");
-                        opt.value = name; // 後台紀錄傳送真實姓名
-                        opt.innerText = maskName(name); // 下拉選單顯示隱藏後的姓名
+                        opt.value = name; 
+                        opt.innerText = maskName(name); 
                         bindSelect.appendChild(opt);
                     });
                 }
@@ -290,21 +469,20 @@
             }
         } catch (error) {
             console.error("載入失敗", error);
-            alert("載入資料失敗，請檢查網路連線。");
-            document.getElementById("status-board").innerHTML = "<h2 style='color:red;'>載入失敗，請重新整理</h2>";
+            alert(t("msg_net_err"));
         }
     }
 
-    // 執行首次綁定動作
+    // 執行首次綁定
     async function bindLineAccount() {
-        const selectedName = document.getElementById("bind-operator").value; // 抓取真實姓名
+        const selectedName = document.getElementById("bind-operator").value; 
         if (!selectedName) {
-            alert("請選擇您的姓名！");
+            alert(t("msg_alert_name"));
             return;
         }
         
         const btn = document.getElementById("bindBtn");
-        btn.innerText = "綁定中...";
+        btn.innerText = t("msg_binding");
         btn.disabled = true;
         
         try {
@@ -318,18 +496,17 @@
                 })
             });
             
-            alert(`✅ 成功綁定為：${maskName(selectedName)}`);
+            alert(t("msg_bind_success") + maskName(selectedName));
             
             currentUser = selectedName;
-            // 顯示隱藏後的姓名
             document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
             document.getElementById("binding-overlay").style.display = "none";
             updateUI(); 
             
         } catch (error) {
             console.error("綁定失敗", error);
-            alert("綁定失敗，請稍後再試。");
-            btn.innerText = "確認綁定";
+            alert(t("msg_bind_fail"));
+            btn.innerText = t("bind_btn");
             btn.disabled = false;
         }
     }
@@ -339,7 +516,7 @@
         const now = new Date();
         
         if (!isTestMode && now.getHours() >= 8) {
-            alert("目前非夜班時段");
+            alert(t("msg_not_night"));
             return;
         }
 
@@ -347,7 +524,7 @@
         const status = document.getElementById("status").value;
 
         if (!currentUser || !equipment || !status) {
-            alert("有項目未選取或尚未綁定帳號！");
+            alert(t("msg_missing_item"));
             return;
         }
 
@@ -359,7 +536,7 @@
 
             if (diffHours < 1) {
                 const timeString = lastTime.toLocaleTimeString('zh-TW', { hour12: false });
-                alert(`還沒滿半小時,請勿按按鈕: ${timeString}`);
+                alert(t("msg_time_limit") + timeString);
                 return;
             }
         }
@@ -368,13 +545,13 @@
             action: 'inspect', 
             timestamp: now.getTime(),
             date: now.toLocaleDateString('zh-TW'),
-            operator: currentUser, // 傳送給後端儲存真實姓名
+            operator: currentUser, 
             equipment: equipment,
             status: status
         };
 
         const btn = document.getElementById("submitBtn");
-        btn.innerText = "資料上傳中...";
+        btn.innerText = t("msg_submitting");
         btn.disabled = true;
 
         try {
@@ -390,12 +567,12 @@
             document.getElementById("equipment").value = "";
             document.getElementById("status").value = "";
 
-            alert("✅ 自主檢查已成功紀錄至雲端！");
+            alert(t("msg_submit_ok"));
         } catch (error) {
             console.error("上傳失敗", error);
-            alert("資料上傳失敗，請稍後再試。");
+            alert(t("msg_submit_fail"));
         } finally {
-            btn.innerText = "自主檢查確認";
+            btn.innerText = t("submit_btn");
             btn.disabled = false;
         }
     }
@@ -418,11 +595,11 @@
             displayTitleDate = `${y}/${m}/${d}`;
         } else {
             targetDateStr = new Date().toLocaleDateString('zh-TW');
-            displayTitleDate = "今日";
+            displayTitleDate = t("today");
         }
 
         const title = document.createElement("h2");
-        title.innerText = `${displayTitleDate} 各設備自檢狀態 (00:00 - 08:00)`;
+        title.innerText = `${displayTitleDate} ${t("board_title_suffix")}`;
         board.appendChild(title);
 
         equipments.forEach(equip => {
@@ -485,9 +662,9 @@
 
             tr.innerHTML = `
                 <td>${rTime}</td>
-                <td>${maskName(rec.operator)}</td> <!-- 這裡隱藏表格中的姓名 -->
+                <td>${maskName(rec.operator)}</td> 
                 <td>${rec.equipment}</td>
-                <td style="color: ${statusColor}; font-weight: bold;">${rec.status}</td>
+                <td style="color: ${statusColor}; font-weight: bold;">${translateStatus(rec.status)}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -508,7 +685,7 @@
         if (allMorningRecords.length === 0) {
             const msg = document.createElement("div");
             msg.style.color = "gray"; 
-            msg.innerText = `${todayStr} 未有自檢紀錄`;
+            msg.innerText = `${todayStr} ${t("msg_no_record")}`;
             warningDiv.appendChild(msg);
             return; 
         }
@@ -534,23 +711,26 @@
                     let violationOperator = targetRecords[targetRecords.length - 1].operator;
                     const msg = document.createElement("div");
                     msg.style.color = "red";
-                    // 這裡隱藏違規警報中的姓名
-                    msg.innerText = `${equip} ${maskName(violationOperator)} ${todayStr} 在早上0點到8點未確實實施自主檢查`;
+                    msg.innerText = `${equip} ${maskName(violationOperator)} ${todayStr} ${t("msg_violation")}`;
                     warningDiv.appendChild(msg);
                 }
             }
         });
     }
 
+    // 初始化與啟動
     window.onload = async function() {
+        applyTranslations(); // 先套用一次初始語言
+        
         try {
-            document.getElementById("login-hint").innerText = "向伺服器請求配置中...";
+            document.getElementById("login-hint").innerText = t("req_config");
             
+            // 【向雲端後台動態請求 LIFF_ID】
             const configRes = await fetch(SCRIPT_URL + "?action=getConfig");
             const config = await configRes.json();
             DYNAMIC_LIFF_ID = config.liffId;
 
-            document.getElementById("login-hint").innerText = "系統驗證中，請稍候...";
+            document.getElementById("login-hint").innerText = t("verifying");
             
             await liff.init({ liffId: DYNAMIC_LIFF_ID });
             
@@ -561,12 +741,12 @@
                 initDatePicker();
                 await loadData();
             } else {
-                document.getElementById("login-hint").innerText = "請先驗證身分以進入系統";
+                document.getElementById("login-hint").innerText = t("verify_hint");
                 document.getElementById("loginBtn").style.display = "block";
             }
         } catch (error) {
             console.error("初始化失敗", error);
-            document.getElementById("login-hint").innerText = "伺服器連線失敗或配置異常。";
+            document.getElementById("login-hint").innerText = t("config_fail");
         }
     };
 
