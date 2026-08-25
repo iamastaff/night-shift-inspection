@@ -662,7 +662,8 @@
         equipments.forEach(equip => {
             let targetRecords = records.filter(r => {
                 let rDate = new Date(r.timestamp);
-                return r.date === targetDateStr && r.equipment === equip && (isTestMode || rDate.getHours() < 8);
+                // 只要設備符合、日期符合，且該筆紀錄的時間確實是在 00:00 - 08:00 之間，所有人就都看得到燈
+                return r.date === targetDateStr && r.equipment === equip && rDate.getHours() < 8;
             });
 
             const row = document.createElement("div");
