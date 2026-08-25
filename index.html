@@ -744,11 +744,14 @@
         if (!isTestMode && (dayOfWeek === 0 || dayOfWeek === 1)) return;
 
         const todayStr = now.toLocaleDateString('zh-TW');
+        
+        // 【修改點 1】判斷有沒有紀錄時，拿掉 getHours() < 8
         let allMorningRecords = records.filter(r => {
             let dbDate = String(r.date || "").trim();
             let queryDate = String(todayStr || "").trim();
-            return dbDate === queryDate && new Date(r.timestamp).getHours() < 8;
+            return dbDate === queryDate;
         });
+
         if (allMorningRecords.length === 0) {
             const msg = document.createElement("div");
             msg.style.color = "gray"; 
@@ -758,7 +761,12 @@
         }
 
         equipments.forEach(equip => {
-            let targetRecords = records.filter(r => r.date === todayStr && r.equipment === equip && new Date(r.timestamp).getHours() < 8);
+            // 【修改點 2】個別設備檢查時，同樣加上 trim() 並拿掉 getHours() < 8
+            let targetRecords = records.filter(r => {
+                let dbDate = String(r.date || "").trim();
+                let queryDate = String(todayStr || "").trim();
+                return dbDate === queryDate && r.equipment === equip;
+            });
 
             if (targetRecords.length > 0) {
                 let isViolation = false;
@@ -784,7 +792,6 @@
             }
         });
     }
-
     // 初始化與啟動
     window.onload = async function() {
         applyTranslations(); 
