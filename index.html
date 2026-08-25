@@ -23,12 +23,20 @@
         .lang-switch-container { position: absolute; top: 10px; left: 10px; z-index: 100; }
         .lang-switch-container select { padding: 4px; font-size: 12px; border-radius: 4px; cursor: pointer; background-color: #f1f3f5; border: 1px solid #ccc; font-weight: bold; }
 
-        /* 測試模式按鈕 */
-        .test-mode-btn { position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 11px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; opacity: 0.8; z-index: 100; }
+        /* 測試模式按鈕與時間模擬器面板 */
+        .test-control-panel { position: absolute; top: 10px; right: 10px; z-index: 100; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+        .test-mode-btn { padding: 4px 8px; font-size: 11px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; opacity: 0.8; }
         .test-mode-btn:hover { background-color: #5a6268; opacity: 1; }
         .test-mode-btn.active { background-color: #28a745; opacity: 1; }
         .test-mode-btn.active:hover { background-color: #218838; }
         .test-mode-btn:disabled { background-color: #aaa; cursor: not-allowed; opacity: 1;}
+
+        /* 模擬時間設定區塊 (預設隱藏，開啟測試模式後顯示) */
+        #sim-time-box { display: none; background: #e9ecef; padding: 8px; border-radius: 6px; border: 1px solid #ced4da; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 12px; }
+        #sim-time-box label { font-weight: bold; display: block; margin-bottom: 3px; color: #495057; }
+        #sim-time-box input { padding: 4px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 5px; width: 100%; }
+        #sim-time-box button { width: 100%; padding: 4px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        #sim-time-box button:hover { background: #0056b3; }
 
         #violation-warnings { color: red; font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 20px; margin-top: 35px; min-height: 25px; }
         
@@ -57,7 +65,6 @@
         .circle.pink { background-color: #ff69b4; }
         .circle.red { background-color: #dc3545; }
         
-        /* 修改時間標籤樣式，允許顯示兩行(時間與姓名) */
         .time-label { font-size: 12px; color: #555; min-height: 28px; text-align: center; line-height: 1.2; }
 
         .history-section { margin-top: 40px; overflow-x: auto; width: 100%; }
@@ -125,7 +132,15 @@
         </select>
     </div>
 
-    <button id="testModeBtn" class="test-mode-btn" onclick="toggleTestMode()" data-i18n="test_mode">測試人員模式</button>
+    <!-- 測試模式按鈕與模擬時間面板 -->
+    <div class="test-control-panel">
+        <button id="testModeBtn" class="test-mode-btn" onclick="toggleTestMode()" data-i18n="test_mode">測試人員模式</button>
+        <div id="sim-time-box">
+            <label>⏱️ 模擬打單時間：</label>
+            <input type="datetime-local" id="sim-time-input">
+            <button onclick="applySimulatedTime()">套用模擬時間</button>
+        </div>
+    </div>
     
     <div id="violation-warnings"></div>
 
@@ -203,8 +218,26 @@
     
     let records = [];
     let isTestMode = false;
+    let simulatedTime = null; // 【新增】用來儲存測試人員設定的模擬時間
     let currentLineId = "";
     let currentUser = ""; 
+
+    // 【新增】統一取得目前時間的函數（若有設定模擬時間則優先傳回模擬時間）
+    function getCurrentTime() {
+        return simulatedTime ? new Date(simulatedTime) : new Date();
+    }
+
+    // 【新增】套用測試人員設定的模擬時間
+    function applySimulatedTime() {
+        const inputVal = document.getElementById("sim-time-input").value;
+        if (!inputVal) {
+            alert("請先選擇模擬的時間！");
+            return;
+        }
+        simulatedTime = new Date(inputVal).getTime();
+        alert(`⏱️ 已成功設定模擬時間為：${new Date(simulatedTime).toLocaleString('zh-TW', {hour12: false})}`);
+        updateUI();
+    }
 
     // ================== 雙語翻譯字典 (I18N) ==================
     const i18n = {
@@ -245,7 +278,7 @@
             msg_test_off: "已關閉測試模式，恢復正常時間限制。",
             msg_test_pwd: "請輸入測試人員密碼：",
             msg_test_verifying: "驗證中...",
-            msg_test_on: "✅ 測試模式已開啟！\n(已解除非夜班時段與半小時檢查間隔限制)",
+            msg_test_on: "✅ 測試模式已開啟！\n(已解除時間與間隔限制，並可自行設定模擬時間)",
             msg_pwd_err: "❌ 密碼錯誤",
             msg_net_err: "驗證或連線失敗，請檢查網路！",
             msg_bind_success: "✅ 成功綁定為：",
@@ -295,10 +328,10 @@
             col_operator: "Nhân viên",
             col_equip: "Thiết bị",
             col_status: "Trạng thái",
-            msg_test_off: "Đã tắt chế độ kiểm tra, khôi phục giới hạn.",
+            msg_test_off: "Đã tắt chế độ kiểm tra.",
             msg_test_pwd: "Vui lòng nhập mật khẩu:",
             msg_test_verifying: "Đang xác minh...",
-            msg_test_on: "✅ Đã bật chế độ kiểm tra!\n(Bỏ qua thời gian ca đêm và 30 phút)",
+            msg_test_on: "✅ Đã bật chế độ kiểm tra!",
             msg_pwd_err: "❌ Sai mật khẩu",
             msg_net_err: "Lỗi kết nối, vui lòng kiểm tra mạng!",
             msg_bind_success: "✅ Liên kết thành công: ",
@@ -374,7 +407,6 @@
 
     // ========================================================
 
-    // 【新增】將日期物件轉為 "YYYY/M/D(週X)" 格式的輔助函數
     function formatDateWithDay(dateObj) {
         const yyyy = dateObj.getFullYear();
         const mm = dateObj.getMonth() + 1;
@@ -384,7 +416,6 @@
         return `${yyyy}/${mm}/${dd}(${dayStr})`;
     }
 
-    // 遮蔽姓名的函數：把第二個字替換為 "O"
     function maskName(name) {
         if (!name || name.length <= 1) return name || "";
         return name.charAt(0) + "O" + name.substring(2);
@@ -392,8 +423,12 @@
 
     async function toggleTestMode() {
         const btn = document.getElementById("testModeBtn");
+        const simBox = document.getElementById("sim-time-box");
+
         if (isTestMode) {
             isTestMode = false;
+            simulatedTime = null; // 關閉測試模式時同時清除模擬時間
+            simBox.style.display = "none";
             btn.innerText = t("test_mode");
             btn.classList.remove("active");
             alert(t("msg_test_off"));
@@ -415,6 +450,13 @@
                         isTestMode = true;
                         btn.innerText = t("test_mode_on");
                         btn.classList.add("active");
+                        simBox.style.display = "block"; // 顯示模擬時間設定面板
+                        
+                        // 將模擬時間輸入框預設帶入目前時間
+                        const now = new Date();
+                        const pad = n => String(n).padStart(2, '0');
+                        document.getElementById("sim-time-input").value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
                         alert(t("msg_test_on"));
                         updateUI(); 
                     } else {
@@ -432,7 +474,7 @@
     }
 
     function initDatePicker() {
-        const date = new Date();
+        const date = getCurrentTime();
         if (date.getHours() >= 8) { date.setDate(date.getDate()); }
         const yyyy = date.getFullYear();
         const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -526,7 +568,7 @@
 
     // 提交自主檢查確認
     async function submitInspection() {
-        const now = new Date();
+        const now = getCurrentTime(); // 使用模擬時間
         
         if (!isTestMode && now.getHours() >= 8) {
             alert(t("msg_not_night"));
@@ -606,10 +648,9 @@
             let [y, m, d] = viewDateInput.split('-');
             let targetObj = new Date(y, m - 1, d);
             targetDateStr = targetObj.toLocaleDateString('zh-TW');
-            // 【修改】使用新函數產生包含星期幾的標題日期，例如 2026/8/25(二)
             displayTitleDate = formatDateWithDay(targetObj);
         } else {
-            let targetObj = new Date();
+            let targetObj = getCurrentTime();
             targetDateStr = targetObj.toLocaleDateString('zh-TW');
             displayTitleDate = t("today") + ` (${formatDateWithDay(targetObj)})`;
         }
@@ -694,10 +735,10 @@
         const warningDiv = document.getElementById("violation-warnings");
         warningDiv.innerHTML = "";
 
-        const now = new Date();
-        if (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() < 20)) return;
+        const now = getCurrentTime(); // 使用模擬時間
+        if (!isTestMode && (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() < 20))) return;
         const dayOfWeek = now.getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 1) return;
+        if (!isTestMode && (dayOfWeek === 0 || dayOfWeek === 1)) return;
 
         const todayStr = now.toLocaleDateString('zh-TW');
         let allMorningRecords = records.filter(r => r.date === todayStr && new Date(r.timestamp).getHours() < 8);
