@@ -745,8 +745,11 @@
         if (!isTestMode && (dayOfWeek === 0 || dayOfWeek === 1)) return;
 
         const todayStr = now.toLocaleDateString('zh-TW');
-        let allMorningRecords = records.filter(r => r.date === todayStr && new Date(r.timestamp).getHours() < 8);
-
+        let allMorningRecords = records.filter(r => {
+            let dbDate = String(r.date || "").trim();
+            let queryDate = String(todayStr || "").trim();
+            return dbDate === queryDate && new Date(r.timestamp).getHours() < 8;
+        });
         if (allMorningRecords.length === 0) {
             const msg = document.createElement("div");
             msg.style.color = "gray"; 
