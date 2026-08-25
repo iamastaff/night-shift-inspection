@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>夜班自主檢查確認系統</title>
     <style>
-        /* 強制讓所有元素的寬度包含內邊距，防止撐破版面 */
         *, *::before, *::after { box-sizing: border-box; }
 
-        /* 禁用選取文字 */
         body { 
             font-family: "Microsoft JhengHei", sans-serif; 
             background-color: #f4f4f9; 
@@ -18,27 +16,26 @@
             -webkit-user-select: none;
         }
         
-        /* 主容器 */
         .container { position: relative; width: 100%; max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); overflow: hidden; }
         h1, h2 { text-align: center; color: #333; }
         
-        /* 測試模式按鈕 */
         .test-mode-btn { position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 11px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; opacity: 0.8; z-index: 100; }
         .test-mode-btn:hover { background-color: #5a6268; opacity: 1; }
         .test-mode-btn.active { background-color: #28a745; opacity: 1; }
         .test-mode-btn.active:hover { background-color: #218838; }
 
-        /* 警告區塊 */
         #violation-warnings { color: red; font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 20px; margin-top: 35px; min-height: 25px; }
         
         /* 表單區塊 */
         .form-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; width: 100%; }
-        select, button.submit-btn { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; max-width: 100%; }
+        select, .operator-display, button.submit-btn { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; max-width: 100%; }
+        /* 綁定後的姓名顯示區塊 */
+        .operator-display { background-color: #e9ecef; font-weight: bold; color: #007bff; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; }
+        
         button.submit-btn { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; max-width: 250px; }
         button.submit-btn:hover { background-color: #0056b3; }
         button.submit-btn:disabled { background-color: #a0c4ff; cursor: not-allowed; }
 
-        /* 狀態圓圈區塊 */
         .status-board-container { margin-top: 30px; width: 100%; }
         .date-selector { text-align: center; margin-bottom: 20px; background: #e9ecef; padding: 15px; border-radius: 8px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px;}
         .date-selector label { font-size: 16px; font-weight: bold; }
@@ -47,58 +44,66 @@
         .equipment-row { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; width: 100%; }
         .equipment-name { width: 100px; font-weight: bold; font-size: 18px; flex-shrink: 0; white-space: nowrap; }
         
-        /* 電腦版圓圈設定 */
         .circles-container { display: flex; justify-content: flex-start; gap: 15px; overflow-x: auto; padding-bottom: 5px; width: 100%; }
         .circle-wrapper { display: flex; flex-direction: column; align-items: center; min-width: 45px; flex-shrink: 0; }
         .circle { width: 30px; height: 30px; border-radius: 50%; background-color: #ccc; margin-bottom: 5px; }
         .circle.green { background-color: #28a745; }
         .circle.yellow { background-color: #ffc107; }
+        .circle.pink { background-color: #ff69b4; }
         .circle.red { background-color: #dc3545; }
         .time-label { font-size: 12px; color: #555; height: 14px; }
 
-        /* 歷史紀錄區塊 */
         .history-section { margin-top: 40px; overflow-x: auto; width: 100%; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: center; min-width: 400px; }
         th, td { border: 1px solid #ddd; padding: 10px; }
         th { background-color: #007bff; color: white; }
         tr:nth-child(even) { background-color: #f2f2f2; }
 
-        /* ======== 手機與平板專屬設定 ======== */
         @media (max-width: 768px) {
             .container { padding: 15px 10px; }
             h1 { font-size: 22px; }
             h2 { font-size: 18px; }
             
-            .form-group select { width: 45%; flex-grow: 1; }
+            .form-group select, .form-group .operator-display { width: 45%; flex-grow: 1; text-align: center; }
             .form-group select:nth-child(3) { width: 100%; }
             
             .equipment-row { flex-direction: column; align-items: flex-start; padding: 10px; }
             .equipment-name { width: 100%; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #ddd; text-align: left; font-size: 16px; }
             
-            /* 【主要修改區塊】：大幅縮小手機版圓圈尺寸與間距 */
-            .circles-container { 
-                gap: 2px; /* 將間距縮小到幾乎沒有 */
-                justify-content: space-around; /* 讓圓圈均勻分布在畫面中 */
-                padding-bottom: 0px; 
-            }
-            .circle-wrapper { 
-                min-width: 32px; /* 縮小容器寬度 */
-            }
-            .circle { 
-                width: 20px;   /* 圓圈寬度改小 */
-                height: 20px;  /* 圓圈高度改小 */
-                margin-bottom: 2px;
-            }
-            .time-label { 
-                font-size: 9px;  /* 時間文字改小 */
-                transform: scale(0.85); /* 稍微壓縮文字比例，避免擠壓到旁邊的圓圈 */
-                transform-origin: top center;
-            }
+            .circles-container { gap: 2px; justify-content: space-around; padding-bottom: 0px; }
+            .circle-wrapper { min-width: 32px; }
+            .circle { width: 20px; height: 20px; margin-bottom: 2px; }
+            .time-label { font-size: 9px; transform: scale(0.85); transform-origin: top center; }
         }
     </style>
 </head>
-<!-- 禁止右鍵選單 (oncontextmenu="return false") -->
 <body oncontextmenu="return false;">
+
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<!-- LINE 登入遮罩畫面 (等待驗證) -->
+<div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: sans-serif;">
+    <h2 style="color: #333; margin-bottom: 20px;">夜班自主檢查系統</h2>
+    <p style="color: #666; margin-bottom: 30px;" id="login-hint">請先驗證身分以進入系統</p>
+    <button id="loginBtn" onclick="liff.login()" style="padding: 12px 30px; background-color: #06C755; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        使用 LINE 登入
+    </button>
+</div>
+
+<!-- 首次登入綁定遮罩畫面 -->
+<div id="binding-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9998; flex-direction: column; justify-content: center; align-items: center; font-family: sans-serif;">
+    <h2 style="color: #333; margin-bottom: 20px;">首次登入帳號綁定</h2>
+    <p style="color: #dc3545; font-weight: bold; margin-bottom: 20px;">⚠️ 注意：一經綁定將無法自行更改</p>
+    <p style="color: #666; margin-bottom: 15px;">請選擇您的姓名以綁定此 LINE 帳號：</p>
+    
+    <select id="bind-operator" style="padding: 10px; font-size: 16px; border-radius: 5px; margin-bottom: 20px; width: 250px;">
+        <option value="">載入名單中...</option>
+    </select>
+    
+    <button id="bindBtn" onclick="bindLineAccount()" style="padding: 12px 30px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        確認綁定
+    </button>
+</div>
 
 <div class="container">
     <button id="testModeBtn" class="test-mode-btn" onclick="toggleTestMode()">測試人員模式</button>
@@ -108,20 +113,10 @@
     <h1>夜班自主檢查確認</h1>
     
     <div class="form-group">
-        <select id="operator">
-            <option value="">-- 選擇人員 --</option>
-            <option value="王軒嘉">王軒嘉</option>
-            <option value="王茂泉">王茂泉</option>
-            <option value="楊政嘉">楊政嘉</option>
-            <option value="黃阡汶">黃阡汶</option>
-            <option value="侯志賢">侯志賢</option>
-            <option value="楊惠堂">楊惠堂</option>
-            <option value="許俊然">許俊然</option>
-            <option value="張正義">張正義</option>
-            <option value="阮維慶">阮維慶</option>
-            <option value="胡峰旗">胡峰旗</option>
-            <option value="陳榮文">陳榮文</option>
-        </select>
+        <!-- 取代原本的 select，改為顯示已綁定的姓名 -->
+        <div id="operator-display" class="operator-display">
+            資料載入中...
+        </div>
 
         <select id="equipment">
             <option value="">-- 選擇設備 --</option>
@@ -151,7 +146,6 @@
         </div>
         <div id="status-board">
             <h2>載入雲端資料中...請稍候</h2>
-            <!-- 設備圓圈會由 JS 動態生成 -->
         </div>
     </div>
 
@@ -167,7 +161,6 @@
                 </tr>
             </thead>
             <tbody id="history-body">
-                <!-- 歷史紀錄動態生成 -->
             </tbody>
         </table>
     </div>
@@ -175,37 +168,28 @@
 
 <script>
     // ================== 開發者工具防護機制 START ==================
-    // 1. 禁用鍵盤快捷鍵 (F12, Ctrl+Shift+I, Ctrl+U 等)
     document.addEventListener('keydown', function (e) {
-        if (
-            e.key === 'F12' || 
-            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) || 
-            (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) || 
-            (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) || 
-            (e.ctrlKey && (e.key === 'U' || e.key === 'u'))
-        ) {
-            e.preventDefault();
-            return false;
+        if ( e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) || (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) || (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) || (e.ctrlKey && (e.key === 'U' || e.key === 'u')) ) {
+            e.preventDefault(); return false;
         }
     });
-
-    // 2. Debugger 陷阱：只要有人成功打開開發人員工具，就會陷入無限暫停迴圈
-    setInterval(function() {
-        checkDevTools();
-    }, 1000);
-
-    function checkDevTools() {
-        // 這行程式碼在正常瀏覽時不會有影響，但開發者工具一打開就會卡死畫面
-        (function() { debugger; })();
-    }
+    setInterval(function() { (function() { debugger; })(); }, 1000);
     // ================== 開發者工具防護機制 END ==================
 
 
+    // ⚠️⚠️⚠️ 記得填寫你的 Google Apps Script 網址 ⚠️⚠️⚠️
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxarx1BWpO2lTskr1ex8DD0pPjZOyJ50VPBU6lXfCPTygkiV0DVreJDXNuXFZsNTsQ-/exec";
+    // ⚠️⚠️⚠️ 記得填寫你的 LIFF ID ⚠️⚠️⚠️
+    const LIFF_ID = "2011242714-xLCJJ9hj"; 
 
+    // 全體名單
+    const allOperators = ["王軒嘉", "王茂泉", "楊政嘉", "黃阡汶", "侯志賢", "楊惠堂", "許俊然", "張正義", "阮維慶", "胡峰旗", "陳榮文"];
     const equipments = ["七*機", "角*機", "六*機", "中**機", "台*機", "薄*機"];
+    
     let records = [];
     let isTestMode = false;
+    let currentLineId = "";
+    let currentUser = ""; // 儲存登入者綁定的姓名
 
     // 切換測試模式
     function toggleTestMode() {
@@ -221,39 +205,72 @@
                 isTestMode = true;
                 btn.innerText = "測試模式 (已開啟)";
                 btn.classList.add("active");
-                alert("✅ 測試模式已開啟！\n(已解除非夜班時段與1小時檢查間隔限制)");
+                alert("✅ 測試模式已開啟！\n(已解除非夜班時段與半小時檢查間隔限制)");
             } else if (pwd !== null) {
                 alert("❌ 密碼錯誤");
             }
         }
     }
 
-    // 初始化日期選擇器
     function initDatePicker() {
         const date = new Date();
-        // 如果時間為早上 8 點以後，預設查詢「當天」的狀態
-        if (date.getHours() >= 8) {
-            date.setDate(date.getDate());
-        }
-        
+        if (date.getHours() >= 8) { date.setDate(date.getDate()); }
         const yyyy = date.getFullYear();
         const mm = String(date.getMonth() + 1).padStart(2, '0');
         const dd = String(date.getDate()).padStart(2, '0');
         document.getElementById("view-date").value = `${yyyy}-${mm}-${dd}`;
     }
 
-    // 取得指定設備最後一次的檢查紀錄
     function getLastRecord(equip) {
         let equipRecords = records.filter(r => r.equipment === equip);
         return equipRecords.length > 0 ? equipRecords[equipRecords.length - 1] : null;
     }
 
-    // 從 Google Sheets 載入資料
+    // 載入資料 (包含打單紀錄 與 綁定名單)
     async function loadData() {
         try {
             const response = await fetch(SCRIPT_URL);
-            records = await response.json();
-            updateUI();
+            const data = await response.json();
+            
+            // 從新版 GAS 拆解出兩份資料
+            records = data.records || [];
+            let bindings = data.bindings || {};
+
+            // 檢查該 LINE ID 是否已經綁定過姓名
+            if (bindings[currentLineId]) {
+                // 已綁定，直接進入系統並鎖定名字
+                currentUser = bindings[currentLineId];
+                document.getElementById("operator-display").innerText = "👤 " + currentUser;
+                document.getElementById("login-overlay").style.display = "none";
+                document.getElementById("binding-overlay").style.display = "none";
+                updateUI();
+            } else {
+                // 未綁定：處理剃除清單，顯示綁定畫面
+                document.getElementById("login-overlay").style.display = "none";
+                
+                // 取得「所有已經被綁定過」的名字陣列
+                const boundNames = Object.values(bindings);
+                
+                // 過濾出「還沒有被任何人綁定」的名字
+                const availableOperators = allOperators.filter(name => !boundNames.includes(name));
+                
+                const bindSelect = document.getElementById("bind-operator");
+                bindSelect.innerHTML = '<option value="">-- 請選擇您的姓名 --</option>';
+                
+                if (availableOperators.length === 0) {
+                    bindSelect.innerHTML = '<option value="">無可用名單，請聯繫主管</option>';
+                } else {
+                    availableOperators.forEach(name => {
+                        const opt = document.createElement("option");
+                        opt.value = name;
+                        opt.innerText = name;
+                        bindSelect.appendChild(opt);
+                    });
+                }
+                
+                // 顯示綁定遮罩
+                document.getElementById("binding-overlay").style.display = "flex";
+            }
         } catch (error) {
             console.error("載入失敗", error);
             alert("載入資料失敗，請檢查網路連線。");
@@ -261,28 +278,65 @@
         }
     }
 
-    // 提交檢查到 Google Sheets
+    // 執行首次綁定動作
+    async function bindLineAccount() {
+        const selectedName = document.getElementById("bind-operator").value;
+        if (!selectedName) {
+            alert("請選擇您的姓名！");
+            return;
+        }
+        
+        const btn = document.getElementById("bindBtn");
+        btn.innerText = "綁定中...";
+        btn.disabled = true;
+        
+        try {
+            // 傳送綁定指令給後端
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: 'bind',
+                    lineId: currentLineId,
+                    name: selectedName
+                })
+            });
+            
+            alert(`✅ 成功綁定為：${selectedName}`);
+            
+            currentUser = selectedName;
+            document.getElementById("operator-display").innerText = "👤 " + currentUser;
+            document.getElementById("binding-overlay").style.display = "none";
+            updateUI(); // 渲染畫面
+            
+        } catch (error) {
+            console.error("綁定失敗", error);
+            alert("綁定失敗，請稍後再試。");
+            btn.innerText = "確認綁定";
+            btn.disabled = false;
+        }
+    }
+
+    // 提交自主檢查確認
     async function submitInspection() {
         const now = new Date();
         
-        // 限制非夜班時段 (08:00 - 23:59) 不得按下確認按鈕 (測試模式下略過此檢查)
         if (!isTestMode && now.getHours() >= 8) {
             alert("目前非夜班時段");
             return;
         }
 
-        const operator = document.getElementById("operator").value;
         const equipment = document.getElementById("equipment").value;
         const status = document.getElementById("status").value;
 
-        if (!operator || !equipment || !status) {
-            alert("有項目未選取");
+        // 修改：不用再判斷 operator，因為由系統自動帶入 currentUser
+        if (!currentUser || !equipment || !status) {
+            alert("有項目未選取或尚未綁定帳號！");
             return;
         }
 
         const lastRecord = getLastRecord(equipment);
 
-        // 限制同一設備需間隔半小時 (測試模式下略過此檢查)
         if (!isTestMode && lastRecord) {
             const lastTime = new Date(lastRecord.timestamp);
             const diffHours = (now - lastTime) / (1000 * 30 * 60);
@@ -295,14 +349,14 @@
         }
 
         const newRecord = {
+            action: 'inspect', // 告訴後端這是檢查紀錄，不是綁定
             timestamp: now.getTime(),
             date: now.toLocaleDateString('zh-TW'),
-            operator: operator,
+            operator: currentUser, // 使用綁定好的姓名
             equipment: equipment,
             status: status
         };
 
-        // UI 狀態切換，避免重複點擊
         const btn = document.getElementById("submitBtn");
         btn.innerText = "資料上傳中...";
         btn.disabled = true;
@@ -314,17 +368,13 @@
                 body: JSON.stringify(newRecord)
             });
 
-            // 上傳成功，將資料加入本地陣列並更新畫面
             records.push(newRecord);
             updateUI();
 
-            // 重置選單
-            document.getElementById("operator").value = "";
             document.getElementById("equipment").value = "";
             document.getElementById("status").value = "";
 
             alert("✅ 自主檢查已成功紀錄至雲端！");
-
         } catch (error) {
             console.error("上傳失敗", error);
             alert("資料上傳失敗，請稍後再試。");
@@ -334,25 +384,20 @@
         }
     }
 
-    // 更新介面
+    // UI 相關邏輯保留不變
     function updateUI() {
         renderStatusBoard();
         renderHistory();
         checkDailyAudit();
     }
 
-    // 渲染設備狀態 (根據日期選擇器所選的日期)
     function renderStatusBoard() {
         const board = document.getElementById("status-board");
-        board.innerHTML = ""; // 清空現有內容
-        
-        // 取得選擇器上的日期
+        board.innerHTML = ""; 
         const viewDateInput = document.getElementById("view-date").value;
-        let targetDateStr;
-        let displayTitleDate;
+        let targetDateStr, displayTitleDate;
 
         if (viewDateInput) {
-            // 將 YYYY-MM-DD 轉為符合紀錄存儲格式的字串 (例如 YYYY/M/D)
             let [y, m, d] = viewDateInput.split('-');
             targetDateStr = new Date(y, m - 1, d).toLocaleDateString('zh-TW');
             displayTitleDate = `${y}/${m}/${d}`;
@@ -366,16 +411,13 @@
         board.appendChild(title);
 
         equipments.forEach(equip => {
-            // 過濾出目標日期，且時間在 00:00 到 08:00 之間的紀錄
             let targetRecords = records.filter(r => {
                 let rDate = new Date(r.timestamp);
-                // 加入 isTestMode 判斷：開啟測試模式時，顯示全天紀錄；關閉時，只顯示 0-8 點紀錄
                 return r.date === targetDateStr && r.equipment === equip && (isTestMode || rDate.getHours() < 8);
             });
 
             const row = document.createElement("div");
             row.className = "equipment-row";
-
             const nameDiv = document.createElement("div");
             nameDiv.className = "equipment-name";
             nameDiv.innerText = equip;
@@ -387,10 +429,8 @@
             for (let i = 0; i < 6; i++) {
                 const wrapper = document.createElement("div");
                 wrapper.className = "circle-wrapper";
-
                 const circle = document.createElement("div");
                 circle.className = "circle";
-
                 const timeLabel = document.createElement("div");
                 timeLabel.className = "time-label";
 
@@ -404,22 +444,18 @@
                     else if (rec.status === "須暫停收板,調整") circle.classList.add("pink");
                     else if (rec.status === "需要停機調整") circle.classList.add("red");
                 }
-
                 wrapper.appendChild(circle);
                 wrapper.appendChild(timeLabel);
                 circlesDiv.appendChild(wrapper);
             }
-
             row.appendChild(circlesDiv);
             board.appendChild(row);
         });
     }
 
-    // 渲染歷史紀錄 (近 50 筆)
     function renderHistory() {
         const tbody = document.getElementById("history-body");
         tbody.innerHTML = "";
-
         const recentRecords = [...records].reverse().slice(0, 50);
 
         recentRecords.forEach(rec => {
@@ -428,7 +464,8 @@
 
             let statusColor = "#000";
             if (rec.status === "需要停機調整") statusColor = "red";
-            else if (rec.status === "可繼續生產但須微調") statusColor = "#d39e00";
+            else if (rec.status === "須暫停收板,調整") statusColor = "#ff69b4";
+            else if (rec.status === "可收板,但須微調") statusColor = "#d39e00";
             else if (rec.status === "品質正常") statusColor = "green";
 
             tr.innerHTML = `
@@ -441,31 +478,18 @@
         });
     }
 
-    // 每日早上 08:20 自動稽核與警報顯示
     function checkDailyAudit() {
         const warningDiv = document.getElementById("violation-warnings");
         warningDiv.innerHTML = "";
 
         const now = new Date();
-        if (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() < 20)) {
-            return;
-        }
-
+        if (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() < 20)) return;
         const dayOfWeek = now.getDay();
-        // 保留您原本設定的 0 (週日) 或 1 (週一) 邏輯
-        if (dayOfWeek === 0 || dayOfWeek === 1) {
-            return;
-        }
+        if (dayOfWeek === 0 || dayOfWeek === 1) return;
 
         const todayStr = now.toLocaleDateString('zh-TW');
+        let allMorningRecords = records.filter(r => r.date === todayStr && new Date(r.timestamp).getHours() < 8);
 
-        // 先抓出該日期 00:00 到 08:00 所有設備的檢查紀錄
-        let allMorningRecords = records.filter(r => {
-            let rTime = new Date(r.timestamp);
-            return r.date === todayStr && rTime.getHours() < 8;
-        });
-
-        // 判斷 1：如果所有設備都沒有紀錄，代表全部是灰色圓圈，顯示「未開機」
         if (allMorningRecords.length === 0) {
             const msg = document.createElement("div");
             msg.style.color = "gray"; 
@@ -474,17 +498,11 @@
             return; 
         }
 
-        // 判斷 2：如果有一台以上設備有紀錄，才逐一檢查「有紀錄的設備」是否滿5次
         equipments.forEach(equip => {
-            let targetRecords = records.filter(r => {
-                let rTime = new Date(r.timestamp);
-                return r.date === todayStr && r.equipment === equip && rTime.getHours() < 8;
-            });
+            let targetRecords = records.filter(r => r.date === todayStr && r.equipment === equip && new Date(r.timestamp).getHours() < 8);
 
-            // 只有當該設備有自檢紀錄時（大於0次），才進行違規稽核
             if (targetRecords.length > 0) {
                 let isViolation = false;
-
                 if (targetRecords.length < 5) {
                     isViolation = true;
                 } else {
@@ -497,7 +515,6 @@
                     }
                 }
 
-                // 如果違規，抓取最後一位操作該設備的人員名稱並顯示紅字
                 if (isViolation) {
                     let violationOperator = targetRecords[targetRecords.length - 1].operator;
                     const msg = document.createElement("div");
@@ -509,10 +526,34 @@
         });
     }
 
-    // 網頁載入時，初始化日期並從 Google 雲端抓取歷史資料
-    window.onload = function() {
-        initDatePicker();
-        loadData();
+    // ===============================================
+    // LINE LIFF 初始化與登入驗證
+    // ===============================================
+    window.onload = async function() {
+        try {
+            document.getElementById("loginBtn").style.display = "none";
+            document.getElementById("login-hint").innerText = "系統驗證中，請稍候...";
+            
+            // 初始化 LIFF
+            await liff.init({ liffId: LIFF_ID });
+            
+            if (liff.isLoggedIn()) {
+                // 取得 LINE 使用者資訊 (包含 userId)
+                const profile = await liff.getProfile();
+                currentLineId = profile.userId;
+                
+                // 設定日期並開始載入雲端資料 (loadData 會接手處理是否已綁定的邏輯)
+                initDatePicker();
+                await loadData();
+            } else {
+                // 尚未登入，開放登入按鈕
+                document.getElementById("login-hint").innerText = "請先驗證身分以進入系統";
+                document.getElementById("loginBtn").style.display = "block";
+            }
+        } catch (error) {
+            console.error("LIFF 初始化失敗", error);
+            document.getElementById("login-hint").innerText = "系統驗證模組載入失敗，請確認已正確填寫 LIFF ID。";
+        }
     };
 
     setInterval(checkDailyAudit, 60000);
