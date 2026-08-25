@@ -58,6 +58,7 @@
         th { background-color: #007bff; color: white; }
         tr:nth-child(even) { background-color: #f2f2f2; }
 
+        /* ======== 手機與平板專屬設定 ======== */
         @media (max-width: 768px) {
             .container { padding: 15px 10px; }
             h1 { font-size: 22px; }
@@ -73,6 +74,11 @@
             .circle-wrapper { min-width: 32px; }
             .circle { width: 20px; height: 20px; margin-bottom: 2px; }
             .time-label { font-size: 9px; transform: scale(0.85); transform-origin: top center; }
+
+            /* 【新增】：優化手機版歷史紀錄表格，使其自動適應螢幕 */
+            .history-section { margin-top: 30px; }
+            table { min-width: 100%; font-size: 13px; }
+            th, td { padding: 6px 2px; word-break: break-word; }
         }
     </style>
 </head>
