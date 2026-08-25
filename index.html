@@ -23,13 +23,12 @@
         .test-mode-btn:hover { background-color: #5a6268; opacity: 1; }
         .test-mode-btn.active { background-color: #28a745; opacity: 1; }
         .test-mode-btn.active:hover { background-color: #218838; }
+        .test-mode-btn:disabled { background-color: #aaa; cursor: not-allowed; opacity: 1;}
 
         #violation-warnings { color: red; font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 20px; margin-top: 35px; min-height: 25px; }
         
-        /* 表單區塊 */
         .form-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; width: 100%; }
         select, .operator-display, button.submit-btn { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; max-width: 100%; }
-        /* 綁定後的姓名顯示區塊 */
         .operator-display { background-color: #e9ecef; font-weight: bold; color: #007bff; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; }
         
         button.submit-btn { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; max-width: 250px; }
@@ -81,11 +80,11 @@
 
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-<!-- LINE 登入遮罩畫面 (等待驗證) -->
+<!-- LINE 登入遮罩畫面 -->
 <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: sans-serif;">
     <h2 style="color: #333; margin-bottom: 20px;">夜班自主檢查系統</h2>
-    <p style="color: #666; margin-bottom: 30px;" id="login-hint">請先驗證身分以進入系統</p>
-    <button id="loginBtn" onclick="liff.login()" style="padding: 12px 30px; background-color: #06C755; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <p style="color: #666; margin-bottom: 30px;" id="login-hint">向伺服器請求配置中...</p>
+    <button id="loginBtn" onclick="liff.login()" style="display:none; padding: 12px 30px; background-color: #06C755; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         使用 LINE 登入
     </button>
 </div>
@@ -113,7 +112,6 @@
     <h1>夜班自主檢查確認</h1>
     
     <div class="form-group">
-        <!-- 取代原本的 select，改為顯示已綁定的姓名 -->
         <div id="operator-display" class="operator-display">
             資料載入中...
         </div>
@@ -167,32 +165,31 @@
 </div>
 
 <script>
-    // ================== 開發者工具防護機制 START ==================
+    // ================== 開發者工具防護機制 ==================
     document.addEventListener('keydown', function (e) {
         if ( e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) || (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) || (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) || (e.ctrlKey && (e.key === 'U' || e.key === 'u')) ) {
             e.preventDefault(); return false;
         }
     });
     setInterval(function() { (function() { debugger; })(); }, 1000);
-    // ================== 開發者工具防護機制 END ==================
-
+    // ========================================================
 
     // ⚠️⚠️⚠️ 記得填寫你的 Google Apps Script 網址 ⚠️⚠️⚠️
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxarx1BWpO2lTskr1ex8DD0pPjZOyJ50VPBU6lXfCPTygkiV0DVreJDXNuXFZsNTsQ-/exec";
-    // ⚠️⚠️⚠️ 記得填寫你的 LIFF ID ⚠️⚠️⚠️
-    const LIFF_ID = "2011242714-xLCJJ9hj"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxarx1BWpO2lTskr1ex8DD0pPjZOyJ50VPBU6lXfCPTygkiV0DVreJDXNuXFZsNTsQ-/exec"; 
+    
+    // 【修改點】不再寫死 LIFF ID，改由載入時動態從 Google 後台獲取
+    let DYNAMIC_LIFF_ID = ""; 
 
-    // 全體名單
     const allOperators = ["王軒嘉", "王茂泉", "楊政嘉", "黃阡汶", "侯志賢", "楊惠堂", "許俊然", "張正義", "阮維慶", "胡峰旗", "陳榮文"];
     const equipments = ["七*機", "角*機", "六*機", "中**機", "台*機", "薄*機"];
     
     let records = [];
     let isTestMode = false;
     let currentLineId = "";
-    let currentUser = ""; // 儲存登入者綁定的姓名
+    let currentUser = ""; 
 
-    // 切換測試模式
-    function toggleTestMode() {
+    // 【修改點】向雲端驗證密碼，密碼不再存在前端！
+    async function toggleTestMode() {
         const btn = document.getElementById("testModeBtn");
         if (isTestMode) {
             isTestMode = false;
@@ -201,13 +198,33 @@
             alert("已關閉測試模式，恢復正常時間限制。");
         } else {
             const pwd = prompt("請輸入測試人員密碼：");
-            if (pwd === "jvcoiadnvirqbhrmqrijarmvbr58588vqevqevrqeamb9qrjrmqrmgpoqkgpqrkgpregregfewfqef29grg2r8gqeg1rg8qg1") {
-                isTestMode = true;
-                btn.innerText = "測試模式 (已開啟)";
-                btn.classList.add("active");
-                alert("✅ 測試模式已開啟！\n(已解除非夜班時段與半小時檢查間隔限制)");
-            } else if (pwd !== null) {
-                alert("❌ 密碼錯誤");
+            if (pwd !== null && pwd !== "") {
+                btn.innerText = "驗證中...";
+                btn.disabled = true;
+                try {
+                    // 發送密碼給 Google 後端進行比對
+                    const res = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'verify_password', password: pwd })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.result === "success") {
+                        isTestMode = true;
+                        btn.innerText = "測試模式 (已開啟)";
+                        btn.classList.add("active");
+                        alert("✅ 測試模式已開啟！\n(已解除非夜班時段與半小時檢查間隔限制)");
+                    } else {
+                        alert("❌ 密碼錯誤");
+                        btn.innerText = "測試人員模式";
+                    }
+                } catch (error) {
+                    alert("驗證連線失敗，請檢查網路！");
+                    btn.innerText = "測試人員模式";
+                } finally {
+                    btn.disabled = false;
+                }
             }
         }
     }
@@ -232,26 +249,18 @@
             const response = await fetch(SCRIPT_URL);
             const data = await response.json();
             
-            // 從新版 GAS 拆解出兩份資料
             records = data.records || [];
             let bindings = data.bindings || {};
 
-            // 檢查該 LINE ID 是否已經綁定過姓名
             if (bindings[currentLineId]) {
-                // 已綁定，直接進入系統並鎖定名字
                 currentUser = bindings[currentLineId];
                 document.getElementById("operator-display").innerText = "👤 " + currentUser;
                 document.getElementById("login-overlay").style.display = "none";
                 document.getElementById("binding-overlay").style.display = "none";
                 updateUI();
             } else {
-                // 未綁定：處理剃除清單，顯示綁定畫面
                 document.getElementById("login-overlay").style.display = "none";
-                
-                // 取得「所有已經被綁定過」的名字陣列
                 const boundNames = Object.values(bindings);
-                
-                // 過濾出「還沒有被任何人綁定」的名字
                 const availableOperators = allOperators.filter(name => !boundNames.includes(name));
                 
                 const bindSelect = document.getElementById("bind-operator");
@@ -267,8 +276,6 @@
                         bindSelect.appendChild(opt);
                     });
                 }
-                
-                // 顯示綁定遮罩
                 document.getElementById("binding-overlay").style.display = "flex";
             }
         } catch (error) {
@@ -291,7 +298,6 @@
         btn.disabled = true;
         
         try {
-            // 傳送綁定指令給後端
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -307,7 +313,7 @@
             currentUser = selectedName;
             document.getElementById("operator-display").innerText = "👤 " + currentUser;
             document.getElementById("binding-overlay").style.display = "none";
-            updateUI(); // 渲染畫面
+            updateUI(); 
             
         } catch (error) {
             console.error("綁定失敗", error);
@@ -329,7 +335,6 @@
         const equipment = document.getElementById("equipment").value;
         const status = document.getElementById("status").value;
 
-        // 修改：不用再判斷 operator，因為由系統自動帶入 currentUser
         if (!currentUser || !equipment || !status) {
             alert("有項目未選取或尚未綁定帳號！");
             return;
@@ -349,10 +354,10 @@
         }
 
         const newRecord = {
-            action: 'inspect', // 告訴後端這是檢查紀錄，不是綁定
+            action: 'inspect', 
             timestamp: now.getTime(),
             date: now.toLocaleDateString('zh-TW'),
-            operator: currentUser, // 使用綁定好的姓名
+            operator: currentUser, 
             equipment: equipment,
             status: status
         };
@@ -384,7 +389,6 @@
         }
     }
 
-    // UI 相關邏輯保留不變
     function updateUI() {
         renderStatusBoard();
         renderHistory();
@@ -527,32 +531,35 @@
     }
 
     // ===============================================
-    // LINE LIFF 初始化與登入驗證
+    // 【修改點】先向後端請求 LIFF ID，再啟動登入驗證
     // ===============================================
     window.onload = async function() {
         try {
-            document.getElementById("loginBtn").style.display = "none";
+            document.getElementById("login-hint").innerText = "向伺服器請求配置中...";
+            
+            // 1. 取得隱藏在 GAS 後端的 LIFF_ID
+            const configRes = await fetch(SCRIPT_URL + "?action=getConfig");
+            const config = await configRes.json();
+            DYNAMIC_LIFF_ID = config.liffId;
+
             document.getElementById("login-hint").innerText = "系統驗證中，請稍候...";
             
-            // 初始化 LIFF
-            await liff.init({ liffId: LIFF_ID });
+            // 2. 初始化 LIFF
+            await liff.init({ liffId: DYNAMIC_LIFF_ID });
             
             if (liff.isLoggedIn()) {
-                // 取得 LINE 使用者資訊 (包含 userId)
                 const profile = await liff.getProfile();
                 currentLineId = profile.userId;
                 
-                // 設定日期並開始載入雲端資料 (loadData 會接手處理是否已綁定的邏輯)
                 initDatePicker();
                 await loadData();
             } else {
-                // 尚未登入，開放登入按鈕
                 document.getElementById("login-hint").innerText = "請先驗證身分以進入系統";
                 document.getElementById("loginBtn").style.display = "block";
             }
         } catch (error) {
-            console.error("LIFF 初始化失敗", error);
-            document.getElementById("login-hint").innerText = "系統驗證模組載入失敗，請確認已正確填寫 LIFF ID。";
+            console.error("初始化失敗", error);
+            document.getElementById("login-hint").innerText = "伺服器連線失敗或配置異常。";
         }
     };
 
