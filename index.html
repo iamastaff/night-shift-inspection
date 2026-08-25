@@ -119,6 +119,8 @@
             <option value="許俊然">許俊然</option>
             <option value="張正義">張正義</option>
             <option value="阮維慶">阮維慶</option>
+            <option value="胡峰旗">胡峰旗</option>
+            <option value="陳榮文">陳榮文</option>
         </select>
 
         <select id="equipment">
@@ -134,7 +136,8 @@
         <select id="status">
             <option value="">-- 選擇品質狀態 --</option>
             <option value="品質正常">品質正常</option>
-            <option value="可繼續生產但須微調">可繼續生產但須微調</option>
+            <option value="可收板,但須微調">可收板,但須微調</option>
+            <option value="須暫停收板,調整">須暫停收板,調整</option>
             <option value="需要停機調整">需要停機調整</option>
         </select>
 
@@ -279,14 +282,14 @@
 
         const lastRecord = getLastRecord(equipment);
 
-        // 限制同一設備需間隔1小時 (測試模式下略過此檢查)
+        // 限制同一設備需間隔半小時 (測試模式下略過此檢查)
         if (!isTestMode && lastRecord) {
             const lastTime = new Date(lastRecord.timestamp);
-            const diffHours = (now - lastTime) / (1000 * 60 * 60);
+            const diffHours = (now - lastTime) / (1000 * 30 * 60);
 
             if (diffHours < 1) {
                 const timeString = lastTime.toLocaleTimeString('zh-TW', { hour12: false });
-                alert(`還沒滿1小時自檢的時間: ${timeString}`);
+                alert(`還沒滿半小時,請勿按按鈕: ${timeString}`);
                 return;
             }
         }
@@ -397,7 +400,8 @@
                     timeLabel.innerText = rTime.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
 
                     if (rec.status === "品質正常") circle.classList.add("green");
-                    else if (rec.status === "可繼續生產但須微調") circle.classList.add("yellow");
+                    else if (rec.status === "可收板,但須微調") circle.classList.add("yellow");
+                    else if (rec.status === "須暫停收板,調整") circle.classList.add("pink");
                     else if (rec.status === "需要停機調整") circle.classList.add("red");
                 }
 
