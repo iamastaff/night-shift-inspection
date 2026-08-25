@@ -27,8 +27,10 @@
 
         #violation-warnings { color: red; font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 20px; margin-top: 35px; min-height: 25px; }
         
+        /* 表單區塊 */
         .form-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; width: 100%; }
         select, .operator-display, button.submit-btn { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; max-width: 100%; }
+        /* 綁定後的姓名顯示區塊 */
         .operator-display { background-color: #e9ecef; font-weight: bold; color: #007bff; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; }
         
         button.submit-btn { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; width: 100%; max-width: 250px; }
@@ -58,7 +60,6 @@
         th { background-color: #007bff; color: white; }
         tr:nth-child(even) { background-color: #f2f2f2; }
 
-        /* ======== 手機與平板專屬設定 ======== */
         @media (max-width: 768px) {
             .container { padding: 15px 10px; }
             h1 { font-size: 22px; }
@@ -75,7 +76,7 @@
             .circle { width: 20px; height: 20px; margin-bottom: 2px; }
             .time-label { font-size: 9px; transform: scale(0.85); transform-origin: top center; }
 
-            /* 【新增】：優化手機版歷史紀錄表格，使其自動適應螢幕 */
+            /* 優化手機版歷史紀錄表格，使其自動適應螢幕 */
             .history-section { margin-top: 30px; }
             table { min-width: 100%; font-size: 13px; }
             th, td { padding: 6px 2px; word-break: break-word; }
@@ -181,12 +182,11 @@
     // ========================================================
 
     // ⚠️⚠️⚠️ 記得填寫你的 Google Apps Script 網址 ⚠️⚠️⚠️
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxarx1BWpO2lTskr1ex8DD0pPjZOyJ50VPBU6lXfCPTygkiV0DVreJDXNuXFZsNTsQ-/exec"; 
+    const SCRIPT_URL = "請填寫您的SCRIPT_URL"; 
     
-    // 【修改點】不再寫死 LIFF ID，改由載入時動態從 Google 後台獲取
     let DYNAMIC_LIFF_ID = ""; 
 
-    const allOperators = ["王軒嘉", "王茂泉", "楊政嘉", "黃千汶", "侯志賢", "楊惠堂", "許俊然", "張正義", "阮維慶(NGUYEN DUY KHAMH)", "胡峰旗",  "陳光玲(TRAN QUANG LINH)", "阮文孟(NGUYEN VAN MANH)","陳榮文", "吳文德", "測試1", "測試2"];
+    const allOperators = ["王軒嘉", "王茂泉", "楊政嘉", "黃阡汶", "侯志賢", "楊惠堂", "許俊然", "張正義", "阮維慶(NGUYEN DUY KHAMH)", "胡峰旗",  "陳光玲(TRAN QUANG LINH)", "阮文孟(NGUYEN VAN MANH)","陳榮文", "吳文德", "測試1", "測試2"];
     const equipments = ["七*機", "角*機", "六*機", "中**機", "台*機", "薄*機"];
     
     let records = [];
@@ -194,7 +194,12 @@
     let currentLineId = "";
     let currentUser = ""; 
 
-    // 【修改點】向雲端驗證密碼，密碼不再存在前端！
+    // 【新增】遮蔽姓名的函數：把第二個字替換為 "O"
+    function maskName(name) {
+        if (!name || name.length <= 1) return name || "";
+        return name.charAt(0) + "O" + name.substring(2);
+    }
+
     async function toggleTestMode() {
         const btn = document.getElementById("testModeBtn");
         if (isTestMode) {
@@ -208,7 +213,6 @@
                 btn.innerText = "驗證中...";
                 btn.disabled = true;
                 try {
-                    // 發送密碼給 Google 後端進行比對
                     const res = await fetch(SCRIPT_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -260,7 +264,8 @@
 
             if (bindings[currentLineId]) {
                 currentUser = bindings[currentLineId];
-                document.getElementById("operator-display").innerText = "👤 " + currentUser;
+                // 顯示隱藏後的姓名
+                document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
                 document.getElementById("login-overlay").style.display = "none";
                 document.getElementById("binding-overlay").style.display = "none";
                 updateUI();
@@ -277,8 +282,8 @@
                 } else {
                     availableOperators.forEach(name => {
                         const opt = document.createElement("option");
-                        opt.value = name;
-                        opt.innerText = name;
+                        opt.value = name; // 後台紀錄傳送真實姓名
+                        opt.innerText = maskName(name); // 下拉選單顯示隱藏後的姓名
                         bindSelect.appendChild(opt);
                     });
                 }
@@ -293,7 +298,7 @@
 
     // 執行首次綁定動作
     async function bindLineAccount() {
-        const selectedName = document.getElementById("bind-operator").value;
+        const selectedName = document.getElementById("bind-operator").value; // 抓取真實姓名
         if (!selectedName) {
             alert("請選擇您的姓名！");
             return;
@@ -314,10 +319,11 @@
                 })
             });
             
-            alert(`✅ 成功綁定為：${selectedName}`);
+            alert(`✅ 成功綁定為：${maskName(selectedName)}`);
             
             currentUser = selectedName;
-            document.getElementById("operator-display").innerText = "👤 " + currentUser;
+            // 顯示隱藏後的姓名
+            document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
             document.getElementById("binding-overlay").style.display = "none";
             updateUI(); 
             
@@ -363,7 +369,7 @@
             action: 'inspect', 
             timestamp: now.getTime(),
             date: now.toLocaleDateString('zh-TW'),
-            operator: currentUser, 
+            operator: currentUser, // 傳送給後端儲存真實姓名
             equipment: equipment,
             status: status
         };
@@ -480,7 +486,7 @@
 
             tr.innerHTML = `
                 <td>${rTime}</td>
-                <td>${rec.operator}</td>
+                <td>${maskName(rec.operator)}</td> <!-- 這裡隱藏表格中的姓名 -->
                 <td>${rec.equipment}</td>
                 <td style="color: ${statusColor}; font-weight: bold;">${rec.status}</td>
             `;
@@ -529,28 +535,24 @@
                     let violationOperator = targetRecords[targetRecords.length - 1].operator;
                     const msg = document.createElement("div");
                     msg.style.color = "red";
-                    msg.innerText = `${equip} ${violationOperator} ${todayStr} 在早上0點到8點未確實實施自主檢查`;
+                    // 這裡隱藏違規警報中的姓名
+                    msg.innerText = `${equip} ${maskName(violationOperator)} ${todayStr} 在早上0點到8點未確實實施自主檢查`;
                     warningDiv.appendChild(msg);
                 }
             }
         });
     }
 
-    // ===============================================
-    // 【修改點】先向後端請求 LIFF ID，再啟動登入驗證
-    // ===============================================
     window.onload = async function() {
         try {
             document.getElementById("login-hint").innerText = "向伺服器請求配置中...";
             
-            // 1. 取得隱藏在 GAS 後端的 LIFF_ID
             const configRes = await fetch(SCRIPT_URL + "?action=getConfig");
             const config = await configRes.json();
             DYNAMIC_LIFF_ID = config.liffId;
 
             document.getElementById("login-hint").innerText = "系統驗證中，請稍候...";
             
-            // 2. 初始化 LIFF
             await liff.init({ liffId: DYNAMIC_LIFF_ID });
             
             if (liff.isLoggedIn()) {
