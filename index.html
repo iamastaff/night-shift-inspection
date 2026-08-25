@@ -642,16 +642,14 @@
         const board = document.getElementById("status-board");
         board.innerHTML = ""; 
         const viewDateInput = document.getElementById("view-date").value;
-        let targetDateStr, displayTitleDate;
+        let targetObj, displayTitleDate;
 
         if (viewDateInput) {
             let [y, m, d] = viewDateInput.split('-');
-            let targetObj = new Date(y, m - 1, d);
-            targetDateStr = targetObj.toLocaleDateString('zh-TW');
+            targetObj = new Date(y, m - 1, d);
             displayTitleDate = formatDateWithDay(targetObj);
         } else {
-            let targetObj = getCurrentTime();
-            targetDateStr = targetObj.toLocaleDateString('zh-TW');
+            targetObj = getCurrentTime();
             displayTitleDate = t("today") + ` (${formatDateWithDay(targetObj)})`;
         }
 
@@ -660,12 +658,14 @@
         board.appendChild(title);
 
         equipments.forEach(equip => {
-            // 【修改這裡】拿掉 (isTestMode || ...) 的限制，改為只要日期相符、設備相符，且時間在 00:00 - 08:00 之間，所有人就都看得到燈！
             let targetRecords = records.filter(r => {
-                let dbDate = String(r.date || "").trim();
-                let queryDate = String(targetDateStr || "").trim();
-                // 只要日期和設備對應上了，就直接抓進來顯示在圓圈上，不再受時區小時影響
-                return dbDate === queryDate && r.equipment === equip;
+                // 🛡️ 【終極防護】直接比對 年、月、日 數字，徹底免疫所有字串格式與補零問題！
+                let rDate = new Date(r.timestamp);
+                let isSameDate = (rDate.getFullYear() === targetObj.getFullYear() && 
+                                  rDate.getMonth() === targetObj.getMonth() && 
+                                  rDate.getDate() === targetObj.getDate());
+                
+                return isSameDate && r.equipment === equip;
             });
 
             const row = document.createElement("div");
@@ -743,13 +743,17 @@
         const dayOfWeek = now.getDay();
         if (!isTestMode && (dayOfWeek === 0 || dayOfWeek === 1)) return;
 
-        const todayStr = now.toLocaleDateString('zh-TW');
-        
-        // 【修改點 1】判斷有沒有紀錄時，拿掉 getHours() < 8
+        const todayStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`; // 統一顯示格式
+
         let allMorningRecords = records.filter(r => {
-            let dbDate = String(r.date || "").trim();
-            let queryDate = String(todayStr || "").trim();
-            return dbDate === queryDate;
+            // 【修改點 1】全面改用 timestamp 轉換後的數字來比對年月日
+            let rDate = new Date(r.timestamp);
+            let isSameDate = (rDate.getFullYear() === now.getFullYear() && 
+                              rDate.getMonth() === now.getMonth() && 
+                              rDate.getDate() === now.getDate());
+            
+            // 警報檢查確實需要限制在 08:00 以前的紀錄
+            return isSameDate && rDate.getHours() < 8; 
         });
 
         if (allMorningRecords.length === 0) {
@@ -761,11 +765,14 @@
         }
 
         equipments.forEach(equip => {
-            // 【修改點 2】個別設備檢查時，同樣加上 trim() 並拿掉 getHours() < 8
             let targetRecords = records.filter(r => {
-                let dbDate = String(r.date || "").trim();
-                let queryDate = String(todayStr || "").trim();
-                return dbDate === queryDate && r.equipment === equip;
+                // 【修改點 2】個別設備檢查時，同樣全面改用數字比對
+                let rDate = new Date(r.timestamp);
+                let isSameDate = (rDate.getFullYear() === now.getFullYear() && 
+                                  rDate.getMonth() === now.getMonth() && 
+                                  rDate.getDate() === now.getDate());
+                
+                return isSameDate && r.equipment === equip && rDate.getHours() < 8;
             });
 
             if (targetRecords.length > 0) {
