@@ -663,7 +663,10 @@
             // 【修改這裡】拿掉 (isTestMode || ...) 的限制，改為只要日期相符、設備相符，且時間在 00:00 - 08:00 之間，所有人就都看得到燈！
             let targetRecords = records.filter(r => {
                 let rDate = new Date(r.timestamp);
-                return r.date === targetDateStr && r.equipment === equip && rDate.getHours() < 8;
+                // 使用 .trim() 消除日期字串前後可能的空白，確保比對 100% 準確
+                let dbDate = String(r.date || "").trim();
+                let queryDate = String(targetDateStr || "").trim();
+                return dbDate === queryDate && r.equipment === equip && rDate.getHours() < 8;
             });
 
             const row = document.createElement("div");
