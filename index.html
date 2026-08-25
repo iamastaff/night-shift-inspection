@@ -80,7 +80,6 @@
             .circles-container { gap: 4px; justify-content: space-around; padding-bottom: 0px; }
             .circle-wrapper { min-width: 36px; }
             .circle { width: 22px; height: 22px; margin-bottom: 4px; }
-            /* 調整手機版文字大小與縮放 */
             .time-label { font-size: 10px; transform: scale(0.9); transform-origin: top center; min-height: 24px; }
 
             .history-section { margin-top: 30px; }
@@ -195,7 +194,6 @@
     setInterval(function() { (function() { debugger; })(); }, 1000);
     // ========================================================
 
-    // ⚠️⚠️⚠️ 記得填寫你的 Google Apps Script 網址 ⚠️⚠️⚠️
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxarx1BWpO2lTskr1ex8DD0pPjZOyJ50VPBU6lXfCPTygkiV0DVreJDXNuXFZsNTsQ-/exec"; 
     
     let DYNAMIC_LIFF_ID = ""; 
@@ -376,6 +374,16 @@
 
     // ========================================================
 
+    // 【新增】將日期物件轉為 "YYYY/M/D(週X)" 格式的輔助函數
+    function formatDateWithDay(dateObj) {
+        const yyyy = dateObj.getFullYear();
+        const mm = dateObj.getMonth() + 1;
+        const dd = dateObj.getDate();
+        const days = ['日', '一', '二', '三', '四', '五', '六'];
+        const dayStr = days[dateObj.getDay()];
+        return `${yyyy}/${mm}/${dd}(${dayStr})`;
+    }
+
     // 遮蔽姓名的函數：把第二個字替換為 "O"
     function maskName(name) {
         if (!name || name.length <= 1) return name || "";
@@ -389,7 +397,7 @@
             btn.innerText = t("test_mode");
             btn.classList.remove("active");
             alert(t("msg_test_off"));
-            updateUI(); // 切換模式後自動刷新畫面
+            updateUI(); 
         } else {
             const pwd = prompt(t("msg_test_pwd"));
             if (pwd !== null && pwd !== "") {
@@ -408,7 +416,7 @@
                         btn.innerText = t("test_mode_on");
                         btn.classList.add("active");
                         alert(t("msg_test_on"));
-                        updateUI(); // 切換模式後自動刷新畫面
+                        updateUI(); 
                     } else {
                         alert(t("msg_pwd_err"));
                         btn.innerText = t("test_mode");
@@ -596,11 +604,14 @@
 
         if (viewDateInput) {
             let [y, m, d] = viewDateInput.split('-');
-            targetDateStr = new Date(y, m - 1, d).toLocaleDateString('zh-TW');
-            displayTitleDate = `${y}/${m}/${d}`;
+            let targetObj = new Date(y, m - 1, d);
+            targetDateStr = targetObj.toLocaleDateString('zh-TW');
+            // 【修改】使用新函數產生包含星期幾的標題日期，例如 2026/8/25(二)
+            displayTitleDate = formatDateWithDay(targetObj);
         } else {
-            targetDateStr = new Date().toLocaleDateString('zh-TW');
-            displayTitleDate = t("today");
+            let targetObj = new Date();
+            targetDateStr = targetObj.toLocaleDateString('zh-TW');
+            displayTitleDate = t("today") + ` (${formatDateWithDay(targetObj)})`;
         }
 
         const title = document.createElement("h2");
@@ -636,10 +647,8 @@
                     let rTime = new Date(rec.timestamp);
                     let timeStr = rTime.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
                     
-                    // 擷取已經遮蔽過的姓名的前三個字
                     let shortName = maskName(rec.operator).substring(0, 3);
                     
-                    // 用兩行顯示時間與姓名
                     timeLabel.innerHTML = `${timeStr}<br><span style="color: #007bff; font-weight: bold;">${shortName}</span>`;
 
                     if (rec.status === "品質正常") circle.classList.add("green");
