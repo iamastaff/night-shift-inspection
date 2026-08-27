@@ -49,6 +49,10 @@
         button.submit-btn:hover { background-color: #0056b3; }
         button.submit-btn:disabled { background-color: #a0c4ff; cursor: not-allowed; }
 
+        /* 管理者區塊樣式 */
+        #manager-area { display: none; margin-bottom: 20px; background: #e8f4f8; padding: 20px; border-radius: 8px; border: 1px solid #b8daff; width: 100%; }
+        .manager-controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px; }
+
         .status-board-container { margin-top: 30px; width: 100%; }
         .date-selector { text-align: center; margin-bottom: 20px; background: #e9ecef; padding: 15px; border-radius: 8px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px;}
         .date-selector label { font-size: 16px; font-weight: bold; }
@@ -67,10 +71,11 @@
         
         .time-label { font-size: 12px; color: #555; min-height: 28px; text-align: center; line-height: 1.2; }
 
-        .history-section { margin-top: 40px; overflow-x: auto; width: 100%; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: center; min-width: 400px; }
+        .history-section, .weekly-report-section { margin-top: 20px; overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: center; min-width: 400px; background: white;}
         th, td { border: 1px solid #ddd; padding: 10px; }
         th { background-color: #007bff; color: white; }
+        #manager-area th { background-color: #0056b3; }
         tr:nth-child(even) { background-color: #f2f2f2; }
 
         @media (max-width: 768px) {
@@ -78,7 +83,7 @@
             h1 { font-size: 20px; }
             h2 { font-size: 16px; }
             
-            .form-group select, .form-group .operator-display { width: 45%; flex-grow: 1; text-align: center; font-size: 14px; }
+            .form-group select, .form-group .operator-display, .manager-controls select, .manager-controls input { width: 45%; flex-grow: 1; text-align: center; font-size: 14px; }
             .form-group select:nth-child(3) { width: 100%; }
             
             .equipment-row { flex-direction: column; align-items: flex-start; padding: 10px; }
@@ -89,7 +94,7 @@
             .circle { width: 22px; height: 22px; margin-bottom: 4px; }
             .time-label { font-size: 10px; transform: scale(0.9); transform-origin: top center; min-height: 24px; }
 
-            .history-section { margin-top: 30px; }
+            .history-section, .weekly-report-section { margin-top: 30px; }
             table { min-width: 100%; font-size: 13px; }
             th, td { padding: 6px 2px; word-break: break-word; }
         }
@@ -133,7 +138,7 @@
     </div>
 
     <!-- 測試模式按鈕與模擬時間面板 -->
-    <div class="test-control-panel">
+    <div class="test-control-panel" id="test-panel">
         <button id="testModeBtn" class="test-mode-btn" onclick="toggleTestMode()" data-i18n="test_mode">測試人員模式</button>
         <div id="sim-time-box">
             <label>⏱️ 模擬打單時間：</label>
@@ -146,30 +151,63 @@
 
     <h1 data-i18n="main_title">夜班自主檢查確認</h1>
     
-    <div class="form-group">
-        <div id="operator-display" class="operator-display" data-i18n="data_loading">
-            資料載入中...
+    <!-- ✅ 【新增】管理者專屬：週報表查詢區塊 -->
+    <div id="manager-area">
+        <h2 style="color: #0056b3; margin-top: 0;" data-i18n="manager_title">👑 管理者查詢模式</h2>
+        <div class="manager-controls">
+            <select id="manager-equip" onchange="renderWeeklyReport()">
+                <option value="七*機">七*機</option>
+                <option value="角*機">角*機</option>
+                <option value="六*機">六*機</option>
+                <option value="中**機">中**機</option>
+                <option value="台*機">台*機</option>
+                <option value="薄*機">薄*機</option>
+            </select>
+            <input type="date" id="manager-date" onchange="renderWeeklyReport()">
         </div>
+        <div class="weekly-report-section">
+            <table>
+                <thead>
+                    <tr>
+                        <th data-i18n="col_date">日期</th>
+                        <th data-i18n="col_equip">設備</th>
+                        <th data-i18n="col_night_count">夜班檢查次數</th>
+                        <th data-i18n="col_result">結果</th>
+                    </tr>
+                </thead>
+                <tbody id="weekly-report-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-        <select id="equipment">
-            <option value="" data-i18n="select_equip">-- 選擇設備 --</option>
-            <option value="七*機">七*機</option>
-            <option value="角*機">角*機</option>
-            <option value="六*機">六*機</option>
-            <option value="中**機">中**機</option>
-            <option value="台*機">台*機</option>
-            <option value="薄*機">薄*機</option>
-        </select>
+    <!-- 一般人員：打單區塊 -->
+    <div id="operator-area">
+        <div class="form-group">
+            <div id="operator-display" class="operator-display" data-i18n="data_loading">
+                資料載入中...
+            </div>
 
-        <select id="status">
-            <option value="" data-i18n="select_status">-- 選擇品質狀態 --</option>
-            <option value="品質正常" data-i18n="status_normal">品質正常</option>
-            <option value="可收板,但須微調" data-i18n="status_adjust">可收板,但須微調</option>
-            <option value="須暫停收板,調整" data-i18n="status_pause">須暫停收板,調整</option>
-            <option value="需要停機調整" data-i18n="status_stop">需要停機調整</option>
-        </select>
+            <select id="equipment">
+                <option value="" data-i18n="select_equip">-- 選擇設備 --</option>
+                <option value="七*機">七*機</option>
+                <option value="角*機">角*機</option>
+                <option value="六*機">六*機</option>
+                <option value="中**機">中**機</option>
+                <option value="台*機">台*機</option>
+                <option value="薄*機">薄*機</option>
+            </select>
 
-        <button id="submitBtn" class="submit-btn" onclick="submitInspection()" data-i18n="submit_btn">自主檢查確認</button>
+            <select id="status">
+                <option value="" data-i18n="select_status">-- 選擇品質狀態 --</option>
+                <option value="品質正常" data-i18n="status_normal">品質正常</option>
+                <option value="可收板,但須微調" data-i18n="status_adjust">可收板,但須微調</option>
+                <option value="須暫停收板,調整" data-i18n="status_pause">須暫停收板,調整</option>
+                <option value="需要停機調整" data-i18n="status_stop">需要停機調整</option>
+            </select>
+
+            <button id="submitBtn" class="submit-btn" onclick="submitInspection()" data-i18n="submit_btn">自主檢查確認</button>
+        </div>
     </div>
 
     <div class="status-board-container">
@@ -216,18 +254,19 @@
     const allOperators = ["王軒嘉", "王茂泉", "楊政嘉", "黃阡汶", "侯志賢", "楊惠堂", "許俊然", "張正義", "阮維慶(NGUYEN DUY KHAMH)", "胡峰旗",  "陳光玲(TRAN QUANG LINH)", "阮文孟(NGUYEN VAN MANH)","陳榮文", "吳文德", "測試1", "黃一陽", "蘇裕銘", "嚴金殿"];
     const equipments = ["七*機", "角*機", "六*機", "中**機", "台*機", "薄*機"];
     
+    // ✅ 定義管理者名單
+    const managerList = ["黃一陽", "蘇裕銘", "嚴金殿", "測試1"];
+
     let records = [];
     let isTestMode = false;
-    let simulatedTime = null; // 【新增】用來儲存測試人員設定的模擬時間
+    let simulatedTime = null; 
     let currentLineId = "";
     let currentUser = ""; 
 
-    // 【新增】統一取得目前時間的函數（若有設定模擬時間則優先傳回模擬時間）
     function getCurrentTime() {
         return simulatedTime ? new Date(simulatedTime) : new Date();
     }
 
-    // 【新增】套用測試人員設定的模擬時間
     function applySimulatedTime() {
         const inputVal = document.getElementById("sim-time-input").value;
         if (!inputVal) {
@@ -258,6 +297,7 @@
             test_mode: "測試人員模式",
             test_mode_on: "測試模式 (已開啟)",
             main_title: "夜班自主檢查確認",
+            manager_title: "👑 管理者查詢模式",
             data_loading: "資料載入中...",
             select_equip: "-- 選擇設備 --",
             select_status: "-- 選擇品質狀態 --",
@@ -271,10 +311,16 @@
             board_title_suffix: " 各設備自檢狀態 (00:00 - 08:00)",
             today: "今日",
             history_title: "近 50 筆自主檢查紀錄",
+            col_date: "日期",
             col_time: "時間",
             col_operator: "人員",
             col_equip: "設備",
+            col_night_count: "夜班檢查次數",
+            col_result: "結果",
             col_status: "品質狀態",
+            status_pass: "✅ 達標",
+            status_fail: "❌ 未達標",
+            status_holiday: "假日免檢",
             msg_test_off: "已關閉測試模式，恢復正常時間限制。",
             msg_test_pwd: "請輸入測試人員密碼：",
             msg_test_verifying: "驗證中...",
@@ -311,6 +357,7 @@
             test_mode: "Chế độ kiểm tra",
             test_mode_on: "Chế độ KT (Đang bật)",
             main_title: "Xác nhận kiểm tra ca đêm",
+            manager_title: "👑 Chế độ quản lý",
             data_loading: "Đang tải dữ liệu...",
             select_equip: "-- Chọn thiết bị --",
             select_status: "-- Chọn trạng thái --",
@@ -324,10 +371,16 @@
             board_title_suffix: " Trạng thái tự KT (00:00 - 08:00)",
             today: "Hôm nay",
             history_title: "50 bản ghi kiểm tra gần nhất",
+            col_date: "Ngày",
             col_time: "Thời gian",
             col_operator: "Nhân viên",
             col_equip: "Thiết bị",
+            col_night_count: "Số lần KT ca đêm",
+            col_result: "Kết quả",
             col_status: "Trạng thái",
+            status_pass: "✅ Đạt",
+            status_fail: "❌ Chưa đạt",
+            status_holiday: "Ngày nghỉ",
             msg_test_off: "Đã tắt chế độ kiểm tra.",
             msg_test_pwd: "Vui lòng nhập mật khẩu:",
             msg_test_verifying: "Đang xác minh...",
@@ -427,7 +480,7 @@
 
         if (isTestMode) {
             isTestMode = false;
-            simulatedTime = null; // 關閉測試模式時同時清除模擬時間
+            simulatedTime = null; 
             simBox.style.display = "none";
             btn.innerText = t("test_mode");
             btn.classList.remove("active");
@@ -450,9 +503,8 @@
                         isTestMode = true;
                         btn.innerText = t("test_mode_on");
                         btn.classList.add("active");
-                        simBox.style.display = "block"; // 顯示模擬時間設定面板
+                        simBox.style.display = "block"; 
                         
-                        // 將模擬時間輸入框預設帶入目前時間
                         const now = new Date();
                         const pad = n => String(n).padStart(2, '0');
                         document.getElementById("sim-time-input").value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -480,6 +532,7 @@
         const mm = String(date.getMonth() + 1).padStart(2, '0');
         const dd = String(date.getDate()).padStart(2, '0');
         document.getElementById("view-date").value = `${yyyy}-${mm}-${dd}`;
+        document.getElementById("manager-date").value = `${yyyy}-${mm}-${dd}`;
     }
 
     function getLastRecord(equip) {
@@ -501,6 +554,17 @@
                 document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
                 document.getElementById("login-overlay").style.display = "none";
                 document.getElementById("binding-overlay").style.display = "none";
+                
+                // ✅ 判斷是否為管理者
+                if (managerList.includes(currentUser)) {
+                    document.getElementById("operator-area").style.display = "none";
+                    document.getElementById("manager-area").style.display = "block";
+                    document.getElementById("test-panel").style.display = "none"; // 管理者不需要模擬打單
+                } else {
+                    document.getElementById("operator-area").style.display = "block";
+                    document.getElementById("manager-area").style.display = "none";
+                }
+
                 updateUI();
             } else {
                 document.getElementById("login-overlay").style.display = "none";
@@ -556,6 +620,17 @@
             currentUser = selectedName;
             document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
             document.getElementById("binding-overlay").style.display = "none";
+            
+            // ✅ 綁定後同樣判斷身分
+            if (managerList.includes(currentUser)) {
+                document.getElementById("operator-area").style.display = "none";
+                document.getElementById("manager-area").style.display = "block";
+                document.getElementById("test-panel").style.display = "none";
+            } else {
+                document.getElementById("operator-area").style.display = "block";
+                document.getElementById("manager-area").style.display = "none";
+            }
+
             updateUI(); 
             
         } catch (error) {
@@ -635,7 +710,63 @@
     function updateUI() {
         renderStatusBoard();
         renderHistory();
+        renderWeeklyReport();
         checkDailyAudit();
+    }
+
+    // ✅ 新增：渲染管理者一週報表
+    function renderWeeklyReport() {
+        if (!managerList.includes(currentUser)) return; // 只有管理者需要渲染
+
+        const tbody = document.getElementById("weekly-report-body");
+        tbody.innerHTML = "";
+        
+        const equip = document.getElementById("manager-equip").value;
+        const dateInput = document.getElementById("manager-date").value;
+        if (!dateInput) return;
+        
+        let [y, m, d] = dateInput.split('-');
+        let baseDate = new Date(y, m - 1, d);
+
+        // 往前推 7 天 (包含選定日)
+        for (let i = 6; i >= 0; i--) {
+            let targetDate = new Date(baseDate);
+            targetDate.setDate(targetDate.getDate() - i);
+            
+            // 計算該日期的夜班打單次數
+            let dayRecords = records.filter(r => {
+                let rDate = new Date(r.timestamp);
+                let isSameDate = (rDate.getFullYear() === targetDate.getFullYear() && 
+                                  rDate.getMonth() === targetDate.getMonth() && 
+                                  rDate.getDate() === targetDate.getDate());
+                // 必須是該設備，且時間小於早上 8 點
+                return isSameDate && r.equipment === equip && rDate.getHours() < 8;
+            });
+            
+            let count = dayRecords.length;
+            
+            // 判斷日、一 為假日免檢
+            let dayOfWeek = targetDate.getDay();
+            let isWeekend = (dayOfWeek === 0 || dayOfWeek === 1); 
+            
+            let statusHtml = "";
+            if (isWeekend && count < 5) {
+                statusHtml = `<span style='color: gray; font-weight: bold;'>${t("status_holiday")}</span>`;
+            } else if (count >= 5) {
+                statusHtml = `<span style='color: #28a745; font-weight: bold;'>${t("status_pass")}</span>`;
+            } else {
+                statusHtml = `<span style='color: #dc3545; font-weight: bold;'>${t("status_fail")}</span>`;
+            }
+            
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${formatDateWithDay(targetDate)}</td>
+                <td>${equip}</td>
+                <td style="font-weight: bold; font-size: 16px; color: ${count >= 5 ? '#28a745' : '#333'};">${count}</td>
+                <td>${statusHtml}</td>
+            `;
+            tbody.appendChild(tr);
+        }
     }
 
     function renderStatusBoard() {
@@ -738,7 +869,7 @@
         const warningDiv = document.getElementById("violation-warnings");
         warningDiv.innerHTML = "";
 
-        const now = getCurrentTime(); // 使用模擬時間
+        const now = getCurrentTime(); 
         if (!isTestMode && (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() < 20))) return;
         const dayOfWeek = now.getDay();
         if (!isTestMode && (dayOfWeek === 0 || dayOfWeek === 1)) return;
@@ -746,13 +877,11 @@
         const todayStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`; // 統一顯示格式
 
         let allMorningRecords = records.filter(r => {
-            // 【修改點 1】全面改用 timestamp 轉換後的數字來比對年月日
             let rDate = new Date(r.timestamp);
             let isSameDate = (rDate.getFullYear() === now.getFullYear() && 
                               rDate.getMonth() === now.getMonth() && 
                               rDate.getDate() === now.getDate());
             
-            // 警報檢查確實需要限制在 08:00 以前的紀錄
             return isSameDate && rDate.getHours() < 8; 
         });
 
@@ -766,7 +895,6 @@
 
         equipments.forEach(equip => {
             let targetRecords = records.filter(r => {
-                // 【修改點 2】個別設備檢查時，同樣全面改用數字比對
                 let rDate = new Date(r.timestamp);
                 let isSameDate = (rDate.getFullYear() === now.getFullYear() && 
                                   rDate.getMonth() === now.getMonth() && 
@@ -799,6 +927,7 @@
             }
         });
     }
+
     // 初始化與啟動
     window.onload = async function() {
         applyTranslations(); 
@@ -831,7 +960,7 @@
     };
 
     setInterval(checkDailyAudit, 60000);
-    setInterval(loadData, 60000); // 【新增這行】每 60 秒自動從雲端同步最新打單紀錄
+    setInterval(loadData, 60000); // 每 60 秒自動從雲端同步最新打單紀錄
 </script>
 
 </body>
