@@ -85,6 +85,7 @@
             
             .form-group select, .form-group .operator-display, .manager-controls select, .manager-controls input { width: 45%; flex-grow: 1; text-align: center; font-size: 14px; }
             .form-group select:nth-child(3) { width: 100%; }
+            .manager-controls select#manager-query-type { width: 100%; } /* 手機版查詢模式佔滿一行 */
             
             .equipment-row { flex-direction: column; align-items: flex-start; padding: 10px; }
             .equipment-name { width: 100%; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #ddd; text-align: left; font-size: 15px; }
@@ -151,10 +152,16 @@
 
     <h1 data-i18n="main_title">夜班自主檢查確認</h1>
     
-    <!-- ✅ 【新增】管理者專屬：週報表查詢區塊 -->
+    <!-- ✅ 管理者專屬：綜合報表查詢區塊 -->
     <div id="manager-area">
         <h2 style="color: #0056b3; margin-top: 0;" data-i18n="manager_title">👑 管理者查詢模式</h2>
         <div class="manager-controls">
+            <!-- 新增：查詢模式切換 -->
+            <select id="manager-query-type" onchange="toggleManagerQueryType()">
+                <option value="by_equip" data-i18n="query_by_equip">依設備查詢 (一週紀錄)</option>
+                <option value="by_date" data-i18n="query_by_date">依日期查詢 (全廠設備)</option>
+            </select>
+            
             <select id="manager-equip" onchange="renderWeeklyReport()">
                 <option value="七*機">七*機</option>
                 <option value="角*機">角*機</option>
@@ -163,6 +170,7 @@
                 <option value="台*機">台*機</option>
                 <option value="薄*機">薄*機</option>
             </select>
+            
             <input type="date" id="manager-date" onchange="renderWeeklyReport()">
         </div>
         <div class="weekly-report-section">
@@ -171,7 +179,7 @@
                     <tr>
                         <th data-i18n="col_date">日期</th>
                         <th data-i18n="col_equip">設備</th>
-                        <th data-i18n="col_night_count">夜班檢查次數</th>
+                        <th data-i18n="col_night_count">自檢次數</th>
                         <th data-i18n="col_result">結果</th>
                     </tr>
                 </thead>
@@ -315,11 +323,14 @@
             col_time: "時間",
             col_operator: "人員",
             col_equip: "設備",
-            col_night_count: "夜班檢查次數",
+            col_night_count: "自檢次數",
             col_result: "結果",
             col_status: "品質狀態",
-            status_pass: "✅ 達標",
-            status_fail: "❌ 未達標",
+            query_by_equip: "依設備查詢 (一週紀錄)",
+            query_by_date: "依日期查詢 (全廠設備)",
+            status_ok: "OK",
+            status_fail: "未達標",
+            status_none: "無自檢",
             status_holiday: "假日免檢",
             msg_test_off: "已關閉測試模式，恢復正常時間限制。",
             msg_test_pwd: "請輸入測試人員密碼：",
@@ -375,11 +386,14 @@
             col_time: "Thời gian",
             col_operator: "Nhân viên",
             col_equip: "Thiết bị",
-            col_night_count: "Số lần KT ca đêm",
+            col_night_count: "Số lần kiểm tra",
             col_result: "Kết quả",
             col_status: "Trạng thái",
-            status_pass: "✅ Đạt",
-            status_fail: "❌ Chưa đạt",
+            query_by_equip: "Tra cứu theo thiết bị (1 tuần)",
+            query_by_date: "Tra cứu theo ngày (Toàn xưởng)",
+            status_ok: "OK",
+            status_fail: "Chưa đạt",
+            status_none: "Không có KT",
             status_holiday: "Ngày nghỉ",
             msg_test_off: "Đã tắt chế độ kiểm tra.",
             msg_test_pwd: "Vui lòng nhập mật khẩu:",
@@ -559,7 +573,7 @@
                 if (managerList.includes(currentUser)) {
                     document.getElementById("operator-area").style.display = "none";
                     document.getElementById("manager-area").style.display = "block";
-                    document.getElementById("test-panel").style.display = "none"; // 管理者不需要模擬打單
+                    document.getElementById("test-panel").style.display = "none"; 
                 } else {
                     document.getElementById("operator-area").style.display = "block";
                     document.getElementById("manager-area").style.display = "none";
@@ -714,13 +728,47 @@
         checkDailyAudit();
     }
 
-    // ✅ 新增：渲染管理者一週報表
+    // ✅ 新增：切換管理者查詢模式
+    function toggleManagerQueryType() {
+        const queryType = document.getElementById("manager-query-type").value;
+        const equipSelect = document.getElementById("manager-equip");
+        
+        if (queryType === "by_date") {
+            equipSelect.style.display = "none"; // 依日期查詢時，隱藏設備選單
+        } else {
+            equipSelect.style.display = "inline-block"; // 依設備查詢時，顯示設備選單
+        }
+        renderWeeklyReport();
+    }
+
+    // ✅ 修改：取得自檢狀態的顏色與文字邏輯
+    function getStatusHtml(count, isWeekend) {
+        // 若達到 5 次以上，直接顯示綠色 OK
+        if (count >= 5) {
+            return `<span style='color: #28a745; font-weight: bold;'>${t("status_ok")}</span>`;
+        } 
+        // 假日免檢 (次數未達 5 次時，才標示為假日免檢)
+        else if (isWeekend) {
+            return `<span style='color: #aaa; font-weight: bold;'>${t("status_holiday")}</span>`;
+        } 
+        // 次數為 0 次，顯示灰色無自檢
+        else if (count === 0) {
+            return `<span style='color: #6c757d; font-weight: bold;'>${t("status_none")}</span>`;
+        } 
+        // 次數為 1~4 次，顯示紅色未達標
+        else {
+            return `<span style='color: #dc3545; font-weight: bold;'>${t("status_fail")}</span>`;
+        }
+    }
+
+    // ✅ 修改：渲染管理者報表 (支援雙模式：依設備 / 依日期)
     function renderWeeklyReport() {
-        if (!managerList.includes(currentUser)) return; // 只有管理者需要渲染
+        if (!managerList.includes(currentUser)) return;
 
         const tbody = document.getElementById("weekly-report-body");
         tbody.innerHTML = "";
         
+        const queryType = document.getElementById("manager-query-type").value;
         const equip = document.getElementById("manager-equip").value;
         const dateInput = document.getElementById("manager-date").value;
         if (!dateInput) return;
@@ -728,44 +776,64 @@
         let [y, m, d] = dateInput.split('-');
         let baseDate = new Date(y, m - 1, d);
 
-        // 往前推 7 天 (包含選定日)
-        for (let i = 6; i >= 0; i--) {
-            let targetDate = new Date(baseDate);
-            targetDate.setDate(targetDate.getDate() - i);
-            
-            // 計算該日期的夜班打單次數
-            let dayRecords = records.filter(r => {
-                let rDate = new Date(r.timestamp);
-                let isSameDate = (rDate.getFullYear() === targetDate.getFullYear() && 
-                                  rDate.getMonth() === targetDate.getMonth() && 
-                                  rDate.getDate() === targetDate.getDate());
-                // 必須是該設備，且時間小於早上 8 點
-                return isSameDate && r.equipment === equip && rDate.getHours() < 8;
-            });
-            
-            let count = dayRecords.length;
-            
-            // 判斷日、一 為假日免檢
-            let dayOfWeek = targetDate.getDay();
-            let isWeekend = (dayOfWeek === 0 || dayOfWeek === 1); 
-            
-            let statusHtml = "";
-            if (isWeekend && count < 5) {
-                statusHtml = `<span style='color: gray; font-weight: bold;'>${t("status_holiday")}</span>`;
-            } else if (count >= 5) {
-                statusHtml = `<span style='color: #28a745; font-weight: bold;'>${t("status_pass")}</span>`;
-            } else {
-                statusHtml = `<span style='color: #dc3545; font-weight: bold;'>${t("status_fail")}</span>`;
+        // 模式 1：依設備查詢 (顯示該設備往前 7 天的紀錄)
+        if (queryType === "by_equip") {
+            for (let i = 6; i >= 0; i--) {
+                let targetDate = new Date(baseDate);
+                targetDate.setDate(targetDate.getDate() - i);
+                
+                let dayRecords = records.filter(r => {
+                    let rDate = new Date(r.timestamp);
+                    let isSameDate = (rDate.getFullYear() === targetDate.getFullYear() && 
+                                      rDate.getMonth() === targetDate.getMonth() && 
+                                      rDate.getDate() === targetDate.getDate());
+                    // 🛡️ 拔除小時限制，純看日期與設備
+                    return isSameDate && r.equipment === equip;
+                });
+                
+                let count = dayRecords.length;
+                let dayOfWeek = targetDate.getDay();
+                let isWeekend = (dayOfWeek === 0 || dayOfWeek === 1); 
+                
+                let statusHtml = getStatusHtml(count, isWeekend);
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${formatDateWithDay(targetDate)}</td>
+                    <td>${equip}</td>
+                    <td style="font-weight: bold; font-size: 16px; color: ${count >= 5 ? '#28a745' : '#333'};">${count}</td>
+                    <td>${statusHtml}</td>
+                `;
+                tbody.appendChild(tr);
             }
-            
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${formatDateWithDay(targetDate)}</td>
-                <td>${equip}</td>
-                <td style="font-weight: bold; font-size: 16px; color: ${count >= 5 ? '#28a745' : '#333'};">${count}</td>
-                <td>${statusHtml}</td>
-            `;
-            tbody.appendChild(tr);
+        } 
+        // 模式 2：依日期查詢 (顯示該日期全廠 6 台設備的紀錄)
+        else {
+            equipments.forEach(eq => {
+                let eqRecords = records.filter(r => {
+                    let rDate = new Date(r.timestamp);
+                    let isSameDate = (rDate.getFullYear() === baseDate.getFullYear() && 
+                                      rDate.getMonth() === baseDate.getMonth() && 
+                                      rDate.getDate() === baseDate.getDate());
+                    // 🛡️ 拔除小時限制，純看日期與設備
+                    return isSameDate && r.equipment === eq;
+                });
+                
+                let count = eqRecords.length;
+                let dayOfWeek = baseDate.getDay();
+                let isWeekend = (dayOfWeek === 0 || dayOfWeek === 1);
+                
+                let statusHtml = getStatusHtml(count, isWeekend);
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${formatDateWithDay(baseDate)}</td>
+                    <td>${eq}</td>
+                    <td style="font-weight: bold; font-size: 16px; color: ${count >= 5 ? '#28a745' : '#333'};">${count}</td>
+                    <td>${statusHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
     }
 
@@ -790,7 +858,6 @@
 
         equipments.forEach(equip => {
             let targetRecords = records.filter(r => {
-                // 🛡️ 【終極防護】直接比對 年、月、日 數字，徹底免疫所有字串格式與補零問題！
                 let rDate = new Date(r.timestamp);
                 let isSameDate = (rDate.getFullYear() === targetObj.getFullYear() && 
                                   rDate.getMonth() === targetObj.getMonth() && 
