@@ -557,14 +557,15 @@
     // 載入資料
     async function loadData() {
         try {
-            const response = await fetch(SCRIPT_URL);
+            // 🛡️ 【資安升級】把自己的 lineId 傳給後端，讓後端去查，不下載全體名冊
+            const response = await fetch(SCRIPT_URL + "?lineId=" + currentLineId);
             const data = await response.json();
             
             records = data.records || [];
-            let bindings = data.bindings || {};
 
-            if (bindings[currentLineId]) {
-                currentUser = bindings[currentLineId];
+            // 判斷後端有沒有回傳當前用戶姓名
+            if (data.currentUser) {
+                currentUser = data.currentUser;
                 document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
                 document.getElementById("login-overlay").style.display = "none";
                 document.getElementById("binding-overlay").style.display = "none";
@@ -582,7 +583,9 @@
                 updateUI();
             } else {
                 document.getElementById("login-overlay").style.display = "none";
-                const boundNames = Object.values(bindings);
+                
+                // 使用後端傳來的 boundNames (已被選走的名字) 來過濾可選名單
+                const boundNames = data.boundNames || [];
                 const availableOperators = allOperators.filter(name => !boundNames.includes(name));
                 
                 const bindSelect = document.getElementById("bind-operator");
