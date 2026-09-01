@@ -943,16 +943,15 @@
 
         const todayStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`; // 統一顯示格式
 
-        let allMorningRecords = records.filter(r => {
+        // 【修改點 1】判斷有沒有紀錄時，拿掉 getHours() < 8 的限制，改看全天
+        let allDayRecords = records.filter(r => {
             let rDate = new Date(r.timestamp);
-            let isSameDate = (rDate.getFullYear() === now.getFullYear() && 
-                              rDate.getMonth() === now.getMonth() && 
-                              rDate.getDate() === now.getDate());
-            
-            return isSameDate && rDate.getHours() < 8; 
+            return (rDate.getFullYear() === now.getFullYear() && 
+                    rDate.getMonth() === now.getMonth() && 
+                    rDate.getDate() === now.getDate());
         });
 
-        if (allMorningRecords.length === 0) {
+        if (allDayRecords.length === 0) {
             const msg = document.createElement("div");
             msg.style.color = "gray"; 
             msg.innerText = `${todayStr} ${t("msg_no_record")}`;
@@ -961,34 +960,28 @@
         }
 
         equipments.forEach(equip => {
+            // 【修改點 2】針對個別設備檢查時，同樣拿掉 getHours() < 8
             let targetRecords = records.filter(r => {
                 let rDate = new Date(r.timestamp);
                 let isSameDate = (rDate.getFullYear() === now.getFullYear() && 
                                   rDate.getMonth() === now.getMonth() && 
                                   rDate.getDate() === now.getDate());
                 
-                return isSameDate && r.equipment === equip && rDate.getHours() < 8;
+                return isSameDate && r.equipment === equip;
             });
 
             if (targetRecords.length > 0) {
-                let isViolation = false;
-                if (targetRecords.length < 5) {
-                    isViolation = true;
-                } else {
-                    targetRecords.sort((a, b) => a.timestamp - b.timestamp);
-                    for (let i = 1; i < targetRecords.length; i++) {
-                        if ((targetRecords[i].timestamp - targetRecords[i - 1].timestamp) > 1.5 * 60 * 60 * 1000) {
-                            isViolation = true;
-                            break;
-                        }
-                    }
-                }
+                // 【修改點 3】拔除 1.5 小時的間隔限制，只要總次數小於 5 次就是違規
+                let isViolation = (targetRecords.length < 5);
 
                 if (isViolation) {
+                    // 取最後一次打單的人來顯示
+                    targetRecords.sort((a, b) => a.timestamp - b.timestamp);
                     let violationOperator = targetRecords[targetRecords.length - 1].operator;
                     const msg = document.createElement("div");
                     msg.style.color = "red";
-                    msg.innerText = `${equip} ${maskName(violationOperator)} ${todayStr} ${t("msg_violation")}`;
+                    // 讓提示文字更精確，說明是因為未滿 5 次
+                    msg.innerText = `${equip} ${maskName(violationOperator)} ${todayStr} 檢查次數未達 5 次，請確實實施`;
                     warningDiv.appendChild(msg);
                 }
             }
