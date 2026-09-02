@@ -61,9 +61,10 @@
         .equipment-row { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; width: 100%; }
         .equipment-name { width: 100px; font-weight: bold; font-size: 18px; flex-shrink: 0; white-space: nowrap; }
         
-        .circles-container { display: flex; justify-content: flex-start; gap: 15px; overflow-x: auto; padding-bottom: 10px; width: 100%; }
-        .circle-wrapper { display: flex; flex-direction: column; align-items: center; min-width: 50px; flex-shrink: 0; }
-        .circle { width: 30px; height: 30px; border-radius: 50%; background-color: #ccc; margin-bottom: 5px; }
+        /* ✅ 電腦版看板微調，確保 10 格放得下 */
+        .circles-container { display: flex; justify-content: flex-start; gap: 10px; overflow-x: auto; padding-bottom: 10px; width: 100%; }
+        .circle-wrapper { display: flex; flex-direction: column; align-items: center; min-width: 45px; flex-shrink: 0; }
+        .circle { width: 26px; height: 26px; border-radius: 50%; background-color: #ccc; margin-bottom: 5px; }
         .circle.green { background-color: #28a745; }
         .circle.yellow { background-color: #ffc107; }
         .circle.pink { background-color: #ff69b4; }
@@ -85,15 +86,17 @@
             
             .form-group select, .form-group .operator-display, .manager-controls select, .manager-controls input { width: 45%; flex-grow: 1; text-align: center; font-size: 14px; }
             .form-group select:nth-child(3) { width: 100%; }
-            .manager-controls select#manager-query-type { width: 100%; } /* 手機版查詢模式佔滿一行 */
+            .manager-controls select#manager-query-type { width: 100%; } 
             
             .equipment-row { flex-direction: column; align-items: flex-start; padding: 10px; }
             .equipment-name { width: 100%; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #ddd; text-align: left; font-size: 15px; }
             
-            .circles-container { gap: 4px; justify-content: space-around; padding-bottom: 0px; }
-            .circle-wrapper { min-width: 36px; }
-            .circle { width: 22px; height: 22px; margin-bottom: 4px; }
-            .time-label { font-size: 10px; transform: scale(0.9); transform-origin: top center; min-height: 24px; }
+            /* ✅ 手機版看板大幅優化：縮小圓圈、縮小間距，讓 10 格能完美容納 */
+            .circles-container { gap: 3px; justify-content: flex-start; padding-bottom: 5px; }
+            .circle-wrapper { min-width: 29px; }
+            .circle { width: 18px; height: 18px; margin-bottom: 3px; }
+            /* 利用縮放將文字縮小並集中 */
+            .time-label { font-size: 10px; transform: scale(0.8); transform-origin: top center; min-height: 22px; line-height: 1.1; }
 
             .history-section, .weekly-report-section { margin-top: 30px; }
             table { min-width: 100%; font-size: 13px; }
@@ -156,7 +159,6 @@
     <div id="manager-area">
         <h2 style="color: #0056b3; margin-top: 0;" data-i18n="manager_title">👑 管理者查詢模式</h2>
         <div class="manager-controls">
-            <!-- 新增：查詢模式切換 -->
             <select id="manager-query-type" onchange="toggleManagerQueryType()">
                 <option value="by_equip" data-i18n="query_by_equip">依設備查詢 (一週紀錄)</option>
                 <option value="by_date" data-i18n="query_by_date">依日期查詢 (全廠設備)</option>
@@ -316,7 +318,7 @@
             submit_btn: "自主檢查確認",
             query_date: "查詢特定日期設備狀態：",
             board_loading: "載入雲端資料中...請稍候",
-            board_title_suffix: " 各設備自檢狀態 (00:00 - 08:00)",
+            board_title_suffix: " 各設備自檢狀態",
             today: "今日",
             history_title: "近 50 筆自主檢查紀錄",
             col_date: "日期",
@@ -348,8 +350,7 @@
             msg_submitting: "資料上傳中...",
             msg_submit_ok: "✅ 自主檢查已成功紀錄至雲端！",
             msg_submit_fail: "資料上傳失敗，請稍後再試。",
-            msg_no_record: "未有自檢紀錄",
-            msg_violation: "在早上0點到8點未確實實施自主檢查"
+            msg_no_record: "未有自檢紀錄"
         },
         "vi-VN": {
             app_title: "Hệ thống kiểm tra ca đêm",
@@ -379,7 +380,7 @@
             submit_btn: "Xác nhận kiểm tra",
             query_date: "Tra cứu trạng thái thiết bị theo ngày:",
             board_loading: "Đang tải dữ liệu... vui lòng đợi",
-            board_title_suffix: " Trạng thái tự KT (00:00 - 08:00)",
+            board_title_suffix: " Trạng thái tự KT",
             today: "Hôm nay",
             history_title: "50 bản ghi kiểm tra gần nhất",
             col_date: "Ngày",
@@ -411,8 +412,7 @@
             msg_submitting: "Đang tải lên...",
             msg_submit_ok: "✅ Đã ghi nhận thành công!",
             msg_submit_fail: "Tải lên thất bại, vui lòng thử lại.",
-            msg_no_record: "Không có bản ghi kiểm tra",
-            msg_violation: "chưa thực hiện kiểm tra từ 0h đến 8h"
+            msg_no_record: "Không có bản ghi kiểm tra"
         }
     };
 
@@ -557,20 +557,17 @@
     // 載入資料
     async function loadData() {
         try {
-            // 🛡️ 【資安升級】把自己的 lineId 傳給後端，讓後端去查，不下載全體名冊
             const response = await fetch(SCRIPT_URL + "?lineId=" + currentLineId);
             const data = await response.json();
             
             records = data.records || [];
 
-            // 判斷後端有沒有回傳當前用戶姓名
             if (data.currentUser) {
                 currentUser = data.currentUser;
                 document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
                 document.getElementById("login-overlay").style.display = "none";
                 document.getElementById("binding-overlay").style.display = "none";
                 
-                // ✅ 判斷是否為管理者
                 if (managerList.includes(currentUser)) {
                     document.getElementById("operator-area").style.display = "none";
                     document.getElementById("manager-area").style.display = "block";
@@ -584,7 +581,6 @@
             } else {
                 document.getElementById("login-overlay").style.display = "none";
                 
-                // 使用後端傳來的 boundNames (已被選走的名字) 來過濾可選名單
                 const boundNames = data.boundNames || [];
                 const availableOperators = allOperators.filter(name => !boundNames.includes(name));
                 
@@ -638,7 +634,6 @@
             document.getElementById("operator-display").innerText = "👤 " + maskName(currentUser);
             document.getElementById("binding-overlay").style.display = "none";
             
-            // ✅ 綁定後同樣判斷身分
             if (managerList.includes(currentUser)) {
                 document.getElementById("operator-area").style.display = "none";
                 document.getElementById("manager-area").style.display = "block";
@@ -660,12 +655,7 @@
 
     // 提交自主檢查確認
     async function submitInspection() {
-        const now = getCurrentTime(); // 使用模擬時間
-        
-        if (!isTestMode && now.getHours() >= 8) {
-            alert(t("msg_not_night"));
-            return;
-        }
+        const now = getCurrentTime(); 
 
         const equipment = document.getElementById("equipment").value;
         const status = document.getElementById("status").value;
@@ -673,6 +663,22 @@
         if (!currentUser || !equipment || !status) {
             alert(t("msg_missing_item"));
             return;
+        }
+
+        if (!isTestMode) {
+            if (equipment === "薄*機") {
+                // 薄板機 08:00 到 19:59 禁止打單
+                if (now.getHours() >= 8 && now.getHours() < 20) {
+                    alert("薄*機可打單時間為晚上 20:00 到早上 08:00！");
+                    return;
+                }
+            } else {
+                // 一般機台 08:00 以後禁止打單
+                if (now.getHours() >= 8) {
+                    alert(t("msg_not_night"));
+                    return;
+                }
+            }
         }
 
         const lastRecord = getLastRecord(equipment);
@@ -731,40 +737,51 @@
         checkDailyAudit();
     }
 
-    // ✅ 新增：切換管理者查詢模式
+    // ✅ 【核心引擎】：精準劃分每個設備的「專屬班別時段」
+    function isRecordInShift(rTimestamp, targetDateObj, equip) {
+        let rTime = new Date(rTimestamp).getTime();
+        
+        if (equip === "薄*機") {
+            // 薄板機的 1 個夜班 = 目標日前一天的 20:00 到 目標日當天的 08:00
+            let shiftStart = new Date(targetDateObj.getFullYear(), targetDateObj.getMonth(), targetDateObj.getDate() - 1, 20, 0, 0).getTime();
+            let shiftEnd = new Date(targetDateObj.getFullYear(), targetDateObj.getMonth(), targetDateObj.getDate(), 8, 0, 0).getTime();
+            return rTime >= shiftStart && rTime < shiftEnd;
+        } else {
+            // 一般機台：純比對該日期當天的 00:00 到 23:59 (依原全天邏輯)
+            let rDate = new Date(rTimestamp);
+            return (rDate.getFullYear() === targetDateObj.getFullYear() && 
+                    rDate.getMonth() === targetDateObj.getMonth() && 
+                    rDate.getDate() === targetDateObj.getDate());
+        }
+    }
+
     function toggleManagerQueryType() {
         const queryType = document.getElementById("manager-query-type").value;
         const equipSelect = document.getElementById("manager-equip");
         
         if (queryType === "by_date") {
-            equipSelect.style.display = "none"; // 依日期查詢時，隱藏設備選單
+            equipSelect.style.display = "none"; 
         } else {
-            equipSelect.style.display = "inline-block"; // 依設備查詢時，顯示設備選單
+            equipSelect.style.display = "inline-block"; 
         }
         renderWeeklyReport();
     }
 
-    // ✅ 修改：取得自檢狀態的顏色與文字邏輯
-    function getStatusHtml(count, isWeekend) {
-        // 若達到 5 次以上，直接顯示綠色 OK
-        if (count >= 5) {
+    function getStatusHtml(count, isWeekend, requiredCount) {
+        if (count >= requiredCount) {
             return `<span style='color: #28a745; font-weight: bold;'>${t("status_ok")}</span>`;
         } 
-        // 假日免檢 (次數未達 5 次時，才標示為假日免檢)
         else if (isWeekend) {
             return `<span style='color: #aaa; font-weight: bold;'>${t("status_holiday")}</span>`;
         } 
-        // 次數為 0 次，顯示灰色無自檢
         else if (count === 0) {
             return `<span style='color: #6c757d; font-weight: bold;'>${t("status_none")}</span>`;
         } 
-        // 次數為 1~4 次，顯示紅色未達標
         else {
             return `<span style='color: #dc3545; font-weight: bold;'>${t("status_fail")}</span>`;
         }
     }
 
-    // ✅ 修改：渲染管理者報表 (支援雙模式：依設備 / 依日期)
     function renderWeeklyReport() {
         if (!managerList.includes(currentUser)) return;
 
@@ -779,60 +796,58 @@
         let [y, m, d] = dateInput.split('-');
         let baseDate = new Date(y, m - 1, d);
 
-        // 模式 1：依設備查詢 (顯示該設備往前 7 天的紀錄)
         if (queryType === "by_equip") {
+            let requiredCount = (equip === "薄*機") ? 7 : 5; 
+            
             for (let i = 6; i >= 0; i--) {
                 let targetDate = new Date(baseDate);
                 targetDate.setDate(targetDate.getDate() - i);
                 
-                let dayRecords = records.filter(r => {
-                    let rDate = new Date(r.timestamp);
-                    let isSameDate = (rDate.getFullYear() === targetDate.getFullYear() && 
-                                      rDate.getMonth() === targetDate.getMonth() && 
-                                      rDate.getDate() === targetDate.getDate());
-                    // 🛡️ 拔除小時限制，純看日期與設備
-                    return isSameDate && r.equipment === equip;
-                });
-                
+                let dayRecords = records.filter(r => r.equipment === equip && isRecordInShift(r.timestamp, targetDate, equip));
                 let count = dayRecords.length;
-                let dayOfWeek = targetDate.getDay();
-                let isWeekend = (dayOfWeek === 0 || dayOfWeek === 1); 
                 
-                let statusHtml = getStatusHtml(count, isWeekend);
+                let dayOfWeek = targetDate.getDay();
+                let isWeekend = false;
+                if (equip === "薄*機") {
+                    isWeekend = (dayOfWeek === 6 || dayOfWeek === 0 || dayOfWeek === 1);
+                } else {
+                    isWeekend = (dayOfWeek === 0 || dayOfWeek === 1); 
+                }
+                
+                let statusHtml = getStatusHtml(count, isWeekend, requiredCount);
                 
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${formatDateWithDay(targetDate)}</td>
                     <td>${equip}</td>
-                    <td style="font-weight: bold; font-size: 16px; color: ${count >= 5 ? '#28a745' : '#333'};">${count}</td>
+                    <td style="font-weight: bold; font-size: 16px; color: ${count >= requiredCount ? '#28a745' : '#333'};">${count}</td>
                     <td>${statusHtml}</td>
                 `;
                 tbody.appendChild(tr);
             }
         } 
-        // 模式 2：依日期查詢 (顯示該日期全廠 6 台設備的紀錄)
         else {
             equipments.forEach(eq => {
-                let eqRecords = records.filter(r => {
-                    let rDate = new Date(r.timestamp);
-                    let isSameDate = (rDate.getFullYear() === baseDate.getFullYear() && 
-                                      rDate.getMonth() === baseDate.getMonth() && 
-                                      rDate.getDate() === baseDate.getDate());
-                    // 🛡️ 拔除小時限制，純看日期與設備
-                    return isSameDate && r.equipment === eq;
-                });
+                let requiredCount = (eq === "薄*機") ? 7 : 5;
                 
+                let eqRecords = records.filter(r => r.equipment === eq && isRecordInShift(r.timestamp, baseDate, eq));
                 let count = eqRecords.length;
-                let dayOfWeek = baseDate.getDay();
-                let isWeekend = (dayOfWeek === 0 || dayOfWeek === 1);
                 
-                let statusHtml = getStatusHtml(count, isWeekend);
+                let dayOfWeek = baseDate.getDay();
+                let isWeekend = false;
+                if (eq === "薄*機") {
+                    isWeekend = (dayOfWeek === 6 || dayOfWeek === 0 || dayOfWeek === 1);
+                } else {
+                    isWeekend = (dayOfWeek === 0 || dayOfWeek === 1);
+                }
+                
+                let statusHtml = getStatusHtml(count, isWeekend, requiredCount);
                 
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${formatDateWithDay(baseDate)}</td>
                     <td>${eq}</td>
-                    <td style="font-weight: bold; font-size: 16px; color: ${count >= 5 ? '#28a745' : '#333'};">${count}</td>
+                    <td style="font-weight: bold; font-size: 16px; color: ${count >= requiredCount ? '#28a745' : '#333'};">${count}</td>
                     <td>${statusHtml}</td>
                 `;
                 tbody.appendChild(tr);
@@ -856,18 +871,11 @@
         }
 
         const title = document.createElement("h2");
-        title.innerText = `${displayTitleDate} ${t("board_title_suffix")}`;
+        title.innerText = `${displayTitleDate} ${t("board_title_suffix")} (依該設備班別)`;
         board.appendChild(title);
 
         equipments.forEach(equip => {
-            let targetRecords = records.filter(r => {
-                let rDate = new Date(r.timestamp);
-                let isSameDate = (rDate.getFullYear() === targetObj.getFullYear() && 
-                                  rDate.getMonth() === targetObj.getMonth() && 
-                                  rDate.getDate() === targetObj.getDate());
-                
-                return isSameDate && r.equipment === equip;
-            });
+            let targetRecords = records.filter(r => r.equipment === equip && isRecordInShift(r.timestamp, targetObj, equip));
 
             const row = document.createElement("div");
             row.className = "equipment-row";
@@ -879,7 +887,10 @@
             const circlesDiv = document.createElement("div");
             circlesDiv.className = "circles-container";
 
-            for (let i = 0; i < 6; i++) {
+            // ✅ 將看板預設強制調整為 10 格，若大於 10 格會自動延伸
+            let maxCircles = Math.max(10, targetRecords.length);
+
+            for (let i = 0; i < maxCircles; i++) {
                 const wrapper = document.createElement("div");
                 wrapper.className = "circle-wrapper";
                 const circle = document.createElement("div");
@@ -941,52 +952,40 @@
 
         const now = getCurrentTime(); 
         if (!isTestMode && (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() < 20))) return;
-        const dayOfWeek = now.getDay();
-        if (!isTestMode && (dayOfWeek === 0 || dayOfWeek === 1)) return;
 
-        const todayStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`; // 統一顯示格式
-
-        // 【修改點 1】判斷有沒有紀錄時，拿掉 getHours() < 8 的限制，改看全天
-        let allDayRecords = records.filter(r => {
-            let rDate = new Date(r.timestamp);
-            return (rDate.getFullYear() === now.getFullYear() && 
-                    rDate.getMonth() === now.getMonth() && 
-                    rDate.getDate() === now.getDate());
-        });
-
-        if (allDayRecords.length === 0) {
-            const msg = document.createElement("div");
-            msg.style.color = "gray"; 
-            msg.innerText = `${todayStr} ${t("msg_no_record")}`;
-            warningDiv.appendChild(msg);
-            return; 
-        }
+        const todayStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`; 
 
         equipments.forEach(equip => {
-            // 【修改點 2】針對個別設備檢查時，同樣拿掉 getHours() < 8
-            let targetRecords = records.filter(r => {
-                let rDate = new Date(r.timestamp);
-                let isSameDate = (rDate.getFullYear() === now.getFullYear() && 
-                                  rDate.getMonth() === now.getMonth() && 
-                                  rDate.getDate() === now.getDate());
-                
-                return isSameDate && r.equipment === equip;
-            });
+            let requiredCount = (equip === "薄*機") ? 7 : 5; 
+            
+            let dayOfWeek = now.getDay();
+            let isWeekend = false;
+            if (equip === "薄*機") {
+                isWeekend = (dayOfWeek === 6 || dayOfWeek === 0 || dayOfWeek === 1);
+            } else {
+                isWeekend = (dayOfWeek === 0 || dayOfWeek === 1);
+            }
+
+            if (!isTestMode && isWeekend) return; 
+
+            let targetRecords = records.filter(r => r.equipment === equip && isRecordInShift(r.timestamp, now, equip));
 
             if (targetRecords.length > 0) {
-                // 【修改點 3】拔除 1.5 小時的間隔限制，只要總次數小於 5 次就是違規
-                let isViolation = (targetRecords.length < 5);
+                let isViolation = (targetRecords.length < requiredCount);
 
                 if (isViolation) {
-                    // 取最後一次打單的人來顯示
                     targetRecords.sort((a, b) => a.timestamp - b.timestamp);
                     let violationOperator = targetRecords[targetRecords.length - 1].operator;
                     const msg = document.createElement("div");
                     msg.style.color = "red";
-                    // 讓提示文字更精確，說明是因為未滿 5 次
-                    msg.innerText = `${equip} ${maskName(violationOperator)} ${todayStr} 檢查次數未達 5 次，請確實實施`;
+                    msg.innerText = `${equip} ${maskName(violationOperator)} ${todayStr} 檢查次數未達 ${requiredCount} 次，請確實實施`;
                     warningDiv.appendChild(msg);
                 }
+            } else {
+                const msg = document.createElement("div");
+                msg.style.color = "red"; 
+                msg.innerText = `${equip} ${todayStr} ${t("msg_no_record")}`;
+                warningDiv.appendChild(msg);
             }
         });
     }
