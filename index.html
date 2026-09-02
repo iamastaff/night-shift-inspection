@@ -157,11 +157,11 @@
     
     <!-- ✅ 管理者專屬：綜合報表查詢區塊 -->
     <div id="manager-area">
-        <h2 style="color: #0056b3; margin-top: 0;" data-i18n="manager_title"> 管理者查詢模式</h2>
+        <h2 style="color: #0056b3; margin-top: 0;" data-i18n="manager_title">👑 管理者查詢模式</h2>
         <div class="manager-controls">
             <select id="manager-query-type" onchange="toggleManagerQueryType()">
-                <option value="by_equip" data-i18n="query_by_equip">依設備查詢 (一週紀錄)</option>
                 <option value="by_date" data-i18n="query_by_date">依日期查詢 (全廠設備)</option>
+                <option value="by_equip" data-i18n="query_by_equip">依設備查詢 (一週紀錄)</option>
             </select>
             
             <select id="manager-equip" onchange="renderWeeklyReport()">
@@ -298,7 +298,7 @@
             verifying: "系統驗證中，請稍候...",
             config_fail: "伺服器連線失敗或配置異常。",
             bind_title: "首次登入帳號綁定",
-            bind_warn: " 注意：一經綁定將無法自行更改",
+            bind_warn: "⚠️ 注意：一經綁定將無法自行更改",
             bind_hint: "請選擇您的姓名以綁定此 LINE 帳號：",
             bind_btn: "確認綁定",
             bind_select_default: "-- 請選擇您的姓名 --",
@@ -307,7 +307,7 @@
             test_mode: "測試人員模式",
             test_mode_on: "測試模式 (已開啟)",
             main_title: "夜班自主檢查確認",
-            manager_title: " 管理者查詢模式",
+            manager_title: "👑 管理者查詢模式",
             data_loading: "資料載入中...",
             select_equip: "-- 選擇設備 --",
             select_status: "-- 選擇品質狀態 --",
@@ -360,7 +360,7 @@
             verifying: "Đang xác minh, vui lòng đợi...",
             config_fail: "Lỗi kết nối máy chủ.",
             bind_title: "Liên kết tài khoản lần đầu",
-            bind_warn: " Lưu ý: Không thể tự thay đổi sau khi liên kết",
+            bind_warn: "⚠️ Lưu ý: Không thể tự thay đổi sau khi liên kết",
             bind_hint: "Vui lòng chọn tên của bạn:",
             bind_btn: "Xác nhận liên kết",
             bind_select_default: "-- Chọn tên của bạn --",
@@ -369,7 +369,7 @@
             test_mode: "Chế độ kiểm tra",
             test_mode_on: "Chế độ KT (Đang bật)",
             main_title: "Xác nhận kiểm tra ca đêm",
-            manager_title: " Chế độ quản lý",
+            manager_title: "👑 Chế độ quản lý",
             data_loading: "Đang tải dữ liệu...",
             select_equip: "-- Chọn thiết bị --",
             select_status: "-- Chọn trạng thái --",
@@ -981,12 +981,8 @@
                     msg.innerText = `${equip} ${maskName(violationOperator)} ${todayStr} 檢查次數未達 ${requiredCount} 次，請確實實施`;
                     warningDiv.appendChild(msg);
                 }
-            } else {
-                const msg = document.createElement("div");
-                msg.style.color = "red"; 
-                msg.innerText = `${equip} ${todayStr} ${t("msg_no_record")}`;
-                warningDiv.appendChild(msg);
             }
+            // Removed the else block that displays the 0 count violation message
         });
     }
 
